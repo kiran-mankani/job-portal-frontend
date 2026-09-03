@@ -133,7 +133,7 @@ function AdminDashboard() {
           </h1>
 
           <p style={styles.subtitle}>
-            Welcome back,{" "}
+            Welcome back, {" "}
             <strong>
               {user?.name || "Admin"}
             </strong>
