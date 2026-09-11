@@ -1,6 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+
+import {
+  Search,
+  Filter,
+  Users,
+  BriefcaseBusiness,
+  MapPin,
+  Mail,
+  Phone,
+  FileText,
+  Eye,
+  CheckCircle2,
+  XCircle,
+  Clock3,
+  UserRound,
+  RefreshCw,
+  ArrowLeft,
+  ChevronDown,
+  ExternalLink,
+} from "lucide-react";
 
 import {
   getRecruiterApplications,
@@ -12,30 +32,139 @@ import {
 function RecruiterApplications() {
   const dispatch = useDispatch();
 
-  const { token } = useSelector((state) => state.auth);
+  const auth = useSelector((state) => state.auth || {});
 
-  const {
-    applications,
-    loading,
-    error,
-    success,
-  } = useSelector((state) => state.applications);
+  const token =
+    auth.token ||
+    auth.accessToken ||
+    localStorage.getItem("token");
 
+  const recruiter = auth.user || {};
+
+  const applicationState = useSelector(
+    (state) => state.applications || {}
+  );
+
+  const applications = Array.isArray(
+    applicationState.applications
+  )
+    ? applicationState.applications
+    : [];
+
+  const loading = Boolean(applicationState.loading);
+  const error = applicationState.error || null;
+  const success = applicationState.success || null;
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [jobFilter, setJobFilter] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
 
-  // ==========================================
-  // GET RECRUITER APPLICATIONS
-  // ==========================================
-
   useEffect(() => {
-    if (token) {
-      dispatch(getRecruiterApplications(token));
-    }
+    if (!token) return;
+
+    dispatch(getRecruiterApplications(token));
   }, [dispatch, token]);
 
-  // ==========================================
-  // UPDATE STATUS
-  // ==========================================
+  const jobOptions = useMemo(() => {
+    const map = new Map();
+
+    applications.forEach((application) => {
+      const job = application?.job || {};
+
+      const id = job?._id || job?.id;
+      const title = job?.title || "Job";
+
+      if (id && !map.has(String(id))) {
+        map.set(String(id), title);
+      }
+    });
+
+    return Array.from(map.entries()).map(([id, title]) => ({
+      id,
+      title,
+    }));
+  }, [applications]);
+
+  const filteredApplications = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return applications.filter((application) => {
+      const candidate = application?.candidate || {};
+      const job = application?.job || {};
+
+      const companyName = getCompanyName(job);
+
+      const matchesSearch =
+        !query ||
+        String(candidate?.name || "")
+          .toLowerCase()
+          .includes(query) ||
+        String(candidate?.email || "")
+          .toLowerCase()
+          .includes(query) ||
+        String(job?.title || "")
+          .toLowerCase()
+          .includes(query) ||
+        String(companyName || "")
+          .toLowerCase()
+          .includes(query);
+
+      const currentStatus = String(
+        application?.status || ""
+      ).toLowerCase();
+
+      const matchesStatus =
+        !statusFilter ||
+        currentStatus === statusFilter.toLowerCase();
+
+      const applicationJobId =
+        job?._id ||
+        job?.id ||
+        "";
+
+      const matchesJob =
+        !jobFilter ||
+        String(applicationJobId) === String(jobFilter);
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesJob
+      );
+    });
+  }, [
+    applications,
+    search,
+    statusFilter,
+    jobFilter,
+  ]);
+
+  const totalCount = applications.length;
+
+  const pendingCount = applications.filter(
+    (item) =>
+      String(item?.status || "").toLowerCase() ===
+      "pending"
+  ).length;
+
+  const reviewingCount = applications.filter(
+    (item) =>
+      String(item?.status || "").toLowerCase() ===
+      "reviewing"
+  ).length;
+
+  const shortlistedCount = applications.filter(
+    (item) =>
+      String(item?.status || "").toLowerCase() ===
+      "shortlisted"
+  ).length;
+
+  const hiredCount = applications.filter(
+    (item) =>
+      String(item?.status || "").toLowerCase() ===
+      "hired"
+  ).length;
 
   const handleStatusChange = async (
     applicationId,
@@ -57,600 +186,752 @@ function RecruiterApplications() {
 
     setUpdatingId(null);
 
-    if (updateApplicationStatus.fulfilled.match(result)) {
-      setTimeout(() => {
+    if (
+      updateApplicationStatus.fulfilled.match(
+        result
+      )
+    ) {
+      dispatch(getRecruiterApplications(token));
+
+      window.setTimeout(() => {
         dispatch(clearApplicationSuccess());
-      }, 1500);
+      }, 1800);
     }
   };
-
-  // ==========================================
-  // RETRY
-  // ==========================================
 
   const handleRetry = () => {
     dispatch(clearApplicationError());
 
-    if (token) {
-      dispatch(getRecruiterApplications(token));
-    }
+    if (!token) return;
+
+    dispatch(getRecruiterApplications(token));
   };
 
-  // ==========================================
-  // LOADING
-  // ==========================================
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("");
+    setJobFilter("");
+  };
 
-  if (loading && applications.length === 0) {
+  const hasFilters = Boolean(
+    search ||
+      statusFilter ||
+      jobFilter
+  );
+
+  const successMessage =
+    typeof success === "string"
+      ? success
+      : success?.message ||
+        "Application status updated successfully.";
+
+  const errorMessage =
+    typeof error === "string"
+      ? error
+      : error?.message ||
+        "Unable to load applications.";
+
+  if (
+    loading &&
+    applications.length === 0
+  ) {
     return (
-      <div style={styles.container}>
-        <div style={styles.message}>
-          Loading applications...
+      <div className="min-h-screen bg-[#f5f8fc]">
+        <div className="flex min-h-screen items-center justify-center px-4">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+
+            <p className="text-sm font-semibold text-slate-600">
+              Loading applications...
+            </p>
+
+            <p className="mt-1 text-xs text-slate-400">
+              Please wait a moment.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={styles.container}>
-      {/* ======================================
-          HEADER
-      ====================================== */}
+    <div className="min-h-screen bg-[#f5f8fc] text-[#172b4d]">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white">
+        <div className="mx-auto flex min-h-[70px] max-w-[1450px] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              to="/recruiter/dashboard"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+              aria-label="Back to recruiter dashboard"
+            >
+              <ArrowLeft size={17} />
+            </Link>
 
-      <div style={styles.header}>
-        <div>
-          <h1>Applications</h1>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
+                  <Users size={17} />
+                </div>
 
-          <p style={styles.subtitle}>
-            Review candidates who applied to your jobs.
-          </p>
-        </div>
+                <h1 className="truncate text-[18px] font-bold text-[#172b4d]">
+                  Applications
+                </h1>
+              </div>
 
-        <Link
-          to="/recruiter/dashboard"
-          style={styles.backButton}
-        >
-          Dashboard
-        </Link>
-      </div>
-
-      {/* ======================================
-          SUCCESS
-      ====================================== */}
-
-      {success && (
-        <div style={styles.success}>
-          {success.message ||
-            "Application status updated successfully."}
-        </div>
-      )}
-
-      {/* ======================================
-          ERROR
-      ====================================== */}
-
-      {error && (
-        <div style={styles.error}>
-          <div>
-            <strong>Error:</strong> {error}
+              <p className="mt-0.5 hidden text-[10px] text-slate-400 sm:block">
+                Review and manage candidate applications
+              </p>
+            </div>
           </div>
 
-          <button
-            onClick={handleRetry}
-            style={styles.retryButton}
-          >
-            Retry
-          </button>
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="hidden text-right sm:block">
+              <p className="text-[12px] font-semibold text-[#172b4d]">
+                {recruiter.name ||
+                  recruiter.fullName ||
+                  "Recruiter"}
+              </p>
+
+              <p className="text-[9px] text-slate-400">
+                Recruiter
+              </p>
+            </div>
+
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-700">
+              {getInitials(
+                recruiter.name ||
+                  recruiter.fullName ||
+                  "Recruiter"
+              )}
+            </div>
+          </div>
         </div>
-      )}
+      </header>
 
-      {/* ======================================
-          EMPTY
-      ====================================== */}
-
-      {!loading &&
-        !error &&
-        applications.length === 0 && (
-          <div style={styles.empty}>
-            <h2>No Applications</h2>
-
-            <p>
-              No candidates have applied to your jobs yet.
+      <main className="mx-auto max-w-[1450px] px-4 py-5 sm:px-6 lg:px-8">
+        <section className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+          <div>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-blue-600">
+              Recruiter Portal
             </p>
 
-            <Link
-              to="/jobs/my-jobs"
-              style={styles.primaryButton}
-            >
-              My Jobs
-            </Link>
+            <h2 className="text-[25px] font-bold leading-tight text-[#152b4d] sm:text-[29px]">
+              Candidate Applications
+            </h2>
+
+            <p className="mt-1.5 text-[13px] text-slate-500">
+              Review candidates and update their application status.
+            </p>
+          </div>
+
+          <Link
+            to="/recruiter/dashboard"
+            className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-blue-200 hover:text-blue-600"
+          >
+            Dashboard
+          </Link>
+        </section>
+
+        {success && (
+          <div className="mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-medium text-emerald-700">
+            <CheckCircle2 size={17} />
+            <span>{successMessage}</span>
           </div>
         )}
 
-      {/* ======================================
-          APPLICATIONS
-      ====================================== */}
+        {error && (
+          <div className="mb-5 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <XCircle
+                size={18}
+                className="mt-0.5 shrink-0 text-red-600"
+              />
 
-      {applications.length > 0 && (
-        <div style={styles.list}>
-          {applications.map((application) => {
-            const candidate =
-              application.candidate;
+              <div>
+                <p className="text-xs font-semibold text-red-700">
+                  Unable to load applications
+                </p>
 
-            const job = application.job;
-
-            const currentStatus =
-              application.status || "pending";
-
-            return (
-              <div
-                key={application._id}
-                style={styles.card}
-              >
-                {/* ==================================
-                    JOB
-                ================================== */}
-
-                <div style={styles.jobSection}>
-                  <h2 style={styles.jobTitle}>
-                    {job?.title ||
-                      "Job not available"}
-                  </h2>
-
-                  <p style={styles.company}>
-                    {job?.company ||
-                      job?.companyName ||
-                      "Company not available"}
-                  </p>
-
-                  {job?.location && (
-                    <p style={styles.muted}>
-                      Location: {job.location}
-                    </p>
-                  )}
-                </div>
-
-                {/* ==================================
-                    CANDIDATE
-                ================================== */}
-
-                <div style={styles.section}>
-                  <h3>Candidate</h3>
-
-                  <div style={styles.candidateInfo}>
-                    <div>
-                      <span style={styles.label}>
-                        Name
-                      </span>
-
-                      <span style={styles.value}>
-                        {candidate?.name ||
-                          "N/A"}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span style={styles.label}>
-                        Email
-                      </span>
-
-                      <span style={styles.value}>
-                        {candidate?.email ||
-                          "N/A"}
-                      </span>
-                    </div>
-
-                    {candidate?.phone && (
-                      <div>
-                        <span style={styles.label}>
-                          Phone
-                        </span>
-
-                        <span style={styles.value}>
-                          {candidate.phone}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* ==================================
-                    APPLICATION INFO
-                ================================== */}
-
-                <div style={styles.section}>
-                  <h3>Application</h3>
-
-                  <div style={styles.infoGrid}>
-                    <div>
-                      <span style={styles.label}>
-                        Applied On
-                      </span>
-
-                      <span style={styles.value}>
-                        {application.createdAt
-                          ? new Date(
-                              application.createdAt
-                            ).toLocaleDateString()
-                          : "N/A"}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span style={styles.label}>
-                        Current Status
-                      </span>
-
-                      <span
-                        style={{
-                          ...styles.status,
-                          ...getStatusStyle(
-                            currentStatus
-                          ),
-                        }}
-                      >
-                        {currentStatus}
-                      </span>
-                    </div>
-
-                    <div>
-                      <span style={styles.label}>
-                        CV
-                      </span>
-
-                      <span style={styles.value}>
-                        {application.cvUrl
-                          ? "Uploaded"
-                          : "Not uploaded"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ==================================
-                    CV
-                ================================== */}
-
-                {application.cvUrl && (
-                  <div style={styles.section}>
-                    <a
-                      href={application.cvUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={styles.cvButton}
-                    >
-                      View Candidate CV
-                    </a>
-                  </div>
-                )}
-
-                {/* ==================================
-                    STATUS UPDATE
-                ================================== */}
-
-                <div style={styles.section}>
-                  <h3>Update Application Status</h3>
-
-                  <div style={styles.statusActions}>
-                    {[
-                      "pending",
-                      "shortlisted",
-                      "accepted",
-                      "rejected",
-                    ].map((status) => (
-                      <button
-                        key={status}
-                        disabled={
-                          updatingId ===
-                            application._id ||
-                          currentStatus === status
-                        }
-                        onClick={() =>
-                          handleStatusChange(
-                            application._id,
-                            status
-                          )
-                        }
-                        style={{
-                          ...styles.statusButton,
-                          ...(currentStatus === status
-                            ? styles.activeStatusButton
-                            : {}),
-                          opacity:
-                            updatingId ===
-                              application._id ||
-                            currentStatus === status
-                              ? 0.6
-                              : 1,
-                        }}
-                      >
-                        {updatingId ===
-                        application._id &&
-                        currentStatus !== status
-                          ? "Updating..."
-                          : status}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* ==================================
-                    DETAILS
-                ================================== */}
-
-                {application._id && (
-                  <div style={styles.actions}>
-                    <Link
-                      to={`/candidate/applications/${application._id}`}
-                      style={styles.secondaryButton}
-                    >
-                      View Application
-                    </Link>
-
-                    {job?._id && (
-                      <Link
-                        to={`/jobs/${job._id}`}
-                        style={styles.secondaryButton}
-                      >
-                        View Job
-                      </Link>
-                    )}
-                  </div>
-                )}
+                <p className="mt-1 text-[11px] text-red-600">
+                  {errorMessage}
+                </p>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleRetry}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+            >
+              <RefreshCw size={14} />
+              Retry
+            </button>
+          </div>
+        )}
+
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <SummaryCard
+            title="Total Applications"
+            value={totalCount}
+            icon={<Users size={20} />}
+            box="bg-blue-50 text-blue-600"
+          />
+
+          <SummaryCard
+            title="Pending"
+            value={pendingCount}
+            icon={<Clock3 size={20} />}
+            box="bg-amber-50 text-amber-600"
+          />
+
+          <SummaryCard
+            title="Reviewing"
+            value={reviewingCount}
+            icon={<FileText size={20} />}
+            box="bg-orange-50 text-orange-600"
+          />
+
+          <SummaryCard
+            title="Shortlisted"
+            value={shortlistedCount}
+            icon={<CheckCircle2 size={20} />}
+            box="bg-purple-50 text-purple-600"
+          />
+
+          <SummaryCard
+            title="Hired"
+            value={hiredCount}
+            icon={<UserRound size={20} />}
+            box="bg-emerald-50 text-emerald-600"
+          />
+        </section>
+
+        <section className="mt-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <h3 className="text-[14px] font-bold text-[#172b4d]">
+                Applications
+              </h3>
+
+              <p className="mt-1 text-[10px] text-slate-400">
+                {filteredApplications.length} of{" "}
+                {applications.length} applications shown
+              </p>
+            </div>
+
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-left text-[10px] font-semibold text-blue-600 hover:text-blue-700"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px_220px]">
+            <div className="relative">
+              <Search
+                size={17}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+
+              <input
+                type="text"
+                value={search}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
+                placeholder="Search candidate, job, or email..."
+                className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 pl-10 pr-4 text-xs text-slate-700 outline-none placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
+              />
+            </div>
+
+            <div className="relative">
+              <Filter
+                size={15}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value)
+                }
+                className="h-11 w-full appearance-none rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-8 text-xs text-slate-700 outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
+              >
+                <option value="">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="reviewing">Reviewing</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="rejected">Rejected</option>
+                <option value="hired">Hired</option>
+              </select>
+
+              <ChevronDown
+                size={14}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+            </div>
+
+            <div className="relative">
+              <BriefcaseBusiness
+                size={15}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+
+              <select
+                value={jobFilter}
+                onChange={(event) =>
+                  setJobFilter(event.target.value)
+                }
+                className="h-11 w-full appearance-none rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-8 text-xs text-slate-700 outline-none focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-50"
+              >
+                <option value="">All Jobs</option>
+
+                {jobOptions.map((job) => (
+                  <option
+                    key={job.id}
+                    value={job.id}
+                  >
+                    {job.title}
+                  </option>
+                ))}
+              </select>
+
+              <ChevronDown
+                size={14}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-5">
+          {filteredApplications.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white px-5 py-14 text-center shadow-sm">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50 text-slate-300">
+                <Users size={28} />
+              </div>
+
+              <h3 className="mt-4 text-sm font-bold text-slate-700">
+                {applications.length === 0
+                  ? "No applications yet"
+                  : "No matching applications"}
+              </h3>
+
+              <p className="mx-auto mt-1.5 max-w-md text-xs leading-5 text-slate-400">
+                {applications.length === 0
+                  ? "Candidate applications will appear here when someone applies to your jobs."
+                  : "Try changing your search or filters to find the application you need."}
+              </p>
+
+              {applications.length > 0 &&
+                hasFilters && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="mt-4 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-blue-700"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredApplications.map(
+                (application) => {
+                  const candidate =
+                    application?.candidate || {};
+
+                  const job =
+                    application?.job || {};
+
+                  const applicationId =
+                    application?._id ||
+                    application?.id;
+
+                  const currentStatus =
+                    String(
+                      application?.status ||
+                        "pending"
+                    ).toLowerCase();
+
+                  const candidateInitial =
+                    getInitials(
+                      candidate?.name ||
+                        "Candidate"
+                    );
+
+                  const isUpdating =
+                    updatingId ===
+                    applicationId;
+
+                  return (
+                    <ApplicationCard
+                      key={
+                        applicationId ||
+                        `${candidate?.email || "candidate"}-${job?._id || job?.id || "job"}`
+                      }
+                      application={application}
+                      candidate={candidate}
+                      job={job}
+                      currentStatus={currentStatus}
+                      candidateInitial={candidateInitial}
+                      isUpdating={isUpdating}
+                      onStatusChange={
+                        handleStatusChange
+                      }
+                    />
+                  );
+                }
+              )}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }
 
-// ==========================================
-// STATUS STYLE
-// ==========================================
+function SummaryCard({
+  title,
+  value,
+  icon,
+  box,
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div
+        className={`flex h-10 w-10 items-center justify-center rounded-xl ${box}`}
+      >
+        {icon}
+      </div>
 
-function getStatusStyle(status) {
-  const normalizedStatus =
-    String(status).toLowerCase();
+      <p className="mt-3 text-[10px] font-medium text-slate-500">
+        {title}
+      </p>
 
-  if (normalizedStatus === "accepted") {
-    return {
-      background: "#e5ffe9",
-      color: "#087a21",
-    };
-  }
-
-  if (normalizedStatus === "shortlisted") {
-    return {
-      background: "#e5f0ff",
-      color: "#1557a6",
-    };
-  }
-
-  if (normalizedStatus === "rejected") {
-    return {
-      background: "#ffe5e5",
-      color: "#c00",
-    };
-  }
-
-  return {
-    background: "#fff4d6",
-    color: "#946200",
-  };
+      <p className="mt-1 text-[24px] font-bold leading-none text-[#172b4d]">
+        {value}
+      </p>
+    </div>
+  );
 }
 
-// ==========================================
-// STYLES
-// ==========================================
+function ApplicationCard({
+  application,
+  candidate,
+  job,
+  currentStatus,
+  candidateInitial,
+  isUpdating,
+  onStatusChange,
+}) {
+  const applicationId =
+    application?._id ||
+    application?.id;
 
-const styles = {
-  container: {
-    maxWidth: "1100px",
-    margin: "0 auto",
-    padding: "30px 20px",
-  },
+  const jobId =
+    job?._id ||
+    job?.id;
 
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "20px",
-    flexWrap: "wrap",
-    marginBottom: "30px",
-  },
+  return (
+    <article className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-4 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-blue-700">
+            {candidateInitial}
+          </div>
 
-  subtitle: {
-    color: "#666",
-    marginTop: "5px",
-  },
+          <div className="min-w-0">
+            <h3 className="truncate text-[14px] font-bold text-[#172b4d]">
+              {candidate?.name || "Candidate"}
+            </h3>
 
-  list: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[9px] text-slate-400">
+              {candidate?.email && (
+                <span className="inline-flex items-center gap-1">
+                  <Mail size={11} />
+                  {candidate.email}
+                </span>
+              )}
 
-  card: {
-    padding: "25px",
-    border: "1px solid #ddd",
-    borderRadius: "10px",
-    background: "#fff",
-    boxShadow:
-      "0 2px 8px rgba(0,0,0,0.05)",
-  },
+              {candidate?.phone && (
+                <span className="inline-flex items-center gap-1">
+                  <Phone size={11} />
+                  {candidate.phone}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
 
-  jobSection: {
-    paddingBottom: "18px",
-    borderBottom: "1px solid #eee",
-  },
+        <div className="flex shrink-0 items-center gap-2">
+          <StatusBadge status={currentStatus} />
+        </div>
+      </div>
 
-  jobTitle: {
-    margin: 0,
-    marginBottom: "6px",
-  },
+      <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 sm:px-5 lg:grid-cols-4">
+        <InfoItem
+          label="Applied For"
+          icon={<BriefcaseBusiness size={13} />}
+          value={job?.title || "Job not available"}
+        />
 
-  company: {
-    margin: 0,
-    color: "#555",
-    fontSize: "16px",
-  },
+        <InfoItem
+          label="Company"
+          icon={<Users size={13} />}
+          value={getCompanyName(job)}
+        />
 
-  muted: {
-    color: "#777",
-    marginBottom: 0,
-  },
+        <InfoItem
+          label="Location"
+          icon={<MapPin size={13} />}
+          value={job?.location || "Not specified"}
+        />
 
-  section: {
-    marginTop: "20px",
-    paddingTop: "18px",
-    borderTop: "1px solid #eee",
-  },
+        <InfoItem
+          label="Applied On"
+          icon={<Clock3 size={13} />}
+          value={
+            application?.createdAt
+              ? formatDate(application.createdAt)
+              : "Not available"
+          }
+        />
+      </div>
 
-  candidateInfo: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "18px",
-  },
+      {application?.coverLetter && (
+        <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-4 sm:px-5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Cover Letter
+          </p>
 
-  infoGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: "18px",
-  },
+          <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-600">
+            {application.coverLetter}
+          </p>
+        </div>
+      )}
 
-  label: {
-    display: "block",
-    color: "#777",
-    fontSize: "13px",
-    marginBottom: "5px",
-  },
+      <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="mb-2 text-[10px] font-semibold text-slate-500">
+            Update Status
+          </p>
 
-  value: {
-    display: "block",
-    color: "#333",
-    fontWeight: "500",
-  },
+          <div className="flex flex-wrap gap-2">
+            {[
+              "pending",
+              "reviewing",
+              "shortlisted",
+              "rejected",
+              "hired",
+            ].map((status) => {
+              const active =
+                currentStatus === status;
 
-  status: {
-    display: "inline-block",
-    padding: "6px 12px",
-    borderRadius: "20px",
-    fontSize: "13px",
-    fontWeight: "600",
-    textTransform: "capitalize",
-  },
+              return (
+                <button
+                  key={status}
+                  type="button"
+                  disabled={
+                    isUpdating ||
+                    active
+                  }
+                  onClick={() =>
+                    onStatusChange(
+                      applicationId,
+                      status
+                    )
+                  }
+                  className={`rounded-lg px-3 py-2 text-[9px] font-semibold capitalize transition ${
+                    active
+                      ? getActiveStatusButton(status)
+                      : "border border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                  } ${
+                    isUpdating || active
+                      ? "cursor-not-allowed opacity-70"
+                      : ""
+                  }`}
+                >
+                  {isUpdating && !active
+                    ? "Updating..."
+                    : status}
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
-  statusActions: {
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-  },
+        <div className="flex flex-wrap gap-2">
+          {(application?.cvUrl ||
+            application?.cv ||
+            application?.resume) && (
+            <a
+              href={
+                application.cvUrl ||
+                application.cv ||
+                application.resume
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[9px] font-semibold text-slate-600 hover:border-emerald-200 hover:text-emerald-600"
+            >
+              <FileText size={13} />
+              View CV
+              <ExternalLink size={10} />
+            </a>
+          )}
 
-  statusButton: {
-    padding: "9px 14px",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    background: "#fff",
-    cursor: "pointer",
-    textTransform: "capitalize",
-  },
+          {jobId && (
+            <Link
+              to={`/jobs/${jobId}`}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-[9px] font-semibold text-slate-600 hover:border-blue-200 hover:text-blue-600"
+            >
+              <BriefcaseBusiness size={13} />
+              View Job
+            </Link>
+          )}
 
-  activeStatusButton: {
-    background: "#2563eb",
-    color: "#fff",
-    borderColor: "#2563eb",
-  },
+          <Link
+            to={
+              applicationId
+                ? `/recruiter/applications/${applicationId}`
+                : "/recruiter/applications"
+            }
+            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-2 text-[9px] font-semibold text-white hover:bg-blue-700"
+          >
+            <Eye size={13} />
+            View Details
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
 
-  actions: {
-    display: "flex",
-    gap: "10px",
-    flexWrap: "wrap",
-    marginTop: "22px",
-  },
+function InfoItem({
+  label,
+  icon,
+  value,
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+        {icon}
+        {label}
+      </p>
 
-  primaryButton: {
-    display: "inline-block",
-    padding: "10px 16px",
-    background: "#2563eb",
-    color: "#fff",
-    textDecoration: "none",
-    borderRadius: "6px",
-  },
+      <p className="mt-1 truncate text-[11px] font-semibold text-[#304563]">
+        {value}
+      </p>
+    </div>
+  );
+}
 
-  secondaryButton: {
-    display: "inline-block",
-    padding: "10px 16px",
-    background: "#fff",
-    color: "#2563eb",
-    border: "1px solid #2563eb",
-    textDecoration: "none",
-    borderRadius: "6px",
-  },
+function StatusBadge({ status }) {
+  const normalized = String(
+    status || ""
+  ).toLowerCase();
 
-  backButton: {
-    display: "inline-block",
-    padding: "10px 16px",
-    background: "#fff",
-    color: "#2563eb",
-    border: "1px solid #2563eb",
-    textDecoration: "none",
-    borderRadius: "6px",
-  },
+  let classes =
+    "bg-slate-100 text-slate-600";
 
-  cvButton: {
-    display: "inline-block",
-    padding: "10px 16px",
-    background: "#16a34a",
-    color: "#fff",
-    textDecoration: "none",
-    borderRadius: "6px",
-  },
+  if (normalized === "pending") {
+    classes = "bg-amber-50 text-amber-700";
+  }
 
-  success: {
-    padding: "12px 15px",
-    marginBottom: "20px",
-    background: "#e5ffe9",
-    color: "#087a21",
-    borderRadius: "6px",
-  },
+  if (normalized === "reviewing") {
+    classes = "bg-orange-50 text-orange-600";
+  }
 
-  error: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "15px",
-    padding: "15px",
-    marginBottom: "20px",
-    background: "#ffe5e5",
-    color: "#c00",
-    borderRadius: "6px",
-  },
+  if (normalized === "shortlisted") {
+    classes = "bg-purple-50 text-purple-600";
+  }
 
-  retryButton: {
-    padding: "8px 14px",
-    border: "none",
-    borderRadius: "5px",
-    background: "#c00",
-    color: "#fff",
-    cursor: "pointer",
-  },
+  if (normalized === "hired") {
+    classes = "bg-emerald-50 text-emerald-600";
+  }
 
-  empty: {
-    textAlign: "center",
-    padding: "60px 20px",
-    border: "1px solid #ddd",
-    borderRadius: "10px",
-    background: "#fff",
-  },
+  if (normalized === "rejected") {
+    classes = "bg-red-50 text-red-600";
+  }
 
-  message: {
-    textAlign: "center",
-    padding: "60px",
-    color: "#666",
-  },
-};
+  return (
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-[8px] font-bold capitalize ${classes}`}
+    >
+      {status || "Unknown"}
+    </span>
+  );
+}
+
+function getActiveStatusButton(status) {
+  switch (status) {
+    case "pending":
+      return "border border-amber-200 bg-amber-50 text-amber-700";
+
+    case "reviewing":
+      return "border border-orange-200 bg-orange-50 text-orange-600";
+
+    case "shortlisted":
+      return "border border-purple-200 bg-purple-50 text-purple-600";
+
+    case "rejected":
+      return "border border-red-200 bg-red-50 text-red-600";
+
+    case "hired":
+      return "border border-emerald-200 bg-emerald-50 text-emerald-600";
+
+    default:
+      return "border border-blue-200 bg-blue-50 text-blue-600";
+  }
+}
+
+function getCompanyName(job) {
+  if (typeof job?.company === "string") {
+    return job.company;
+  }
+
+  return (
+    job?.company?.name ||
+    job?.companyName ||
+    job?.recruiter?.company ||
+    job?.recruiter?.companyName ||
+    "Company"
+  );
+}
+
+function getInitials(name) {
+  if (!name) return "C";
+
+  return (
+    String(name)
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part.charAt(0))
+      .join("")
+      .toUpperCase() || "C"
+  );
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  return date.toLocaleDateString(undefined, {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 export default RecruiterApplications;

@@ -1,4 +1,12 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
+// Protected Route
+import ProtectedRoute from "./ProtectedRoute";
 
 // Auth
 import Login from "../pages/auth/Login";
@@ -14,6 +22,11 @@ import Profile from "../pages/candidate/Profile";
 import MyApplications from "../pages/candidate/MyApplications";
 import ApplicationDetails from "../pages/candidate/ApplicationDetails";
 import MyInterviews from "../pages/candidate/MyInterviews";
+import MyCV from "../pages/candidate/MyCV";
+import Messages from "../pages/candidate/Messages";
+import Settings from "../pages/candidate/Settings";
+import SavedJobs from "../pages/candidate/SavedJobs";
+import Notifications from "../pages/candidate/Notifications";
 
 // Jobs
 import JobList from "../pages/jobs/JobList";
@@ -25,9 +38,13 @@ import MyJobs from "../pages/jobs/MyJobs";
 
 // Recruiter
 import RecruiterDashboard from "../pages/recruiter/RecruiterDashboard";
+import RecruiterProfile from "../pages/recruiter/RecruiterProfile";
 import RecruiterApplications from "../pages/recruiter/RecruiterApplications";
 import ScheduleInterview from "../pages/recruiter/ScheduleInterview";
-import RecruiterInterviews from "../pages/recruiter/RecruiterInterviews";
+import RecruiterInterview from "../pages/recruiter/RecruiterInterview";
+import RecruiterMessages from "../pages/recruiter/RecruiterMessages";
+import RecruiterReports from "../pages/recruiter/RecruiterReports";
+import RecruiterSettings from "../pages/recruiter/RecruiterSettings";
 
 // Admin
 import AdminDashboard from "../pages/admin/AdminDashboard";
@@ -39,8 +56,9 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* ==================== AUTH ==================== */}
+        {/* =====================================================
+            AUTH / PUBLIC
+        ===================================================== */}
 
         <Route path="/" element={<Login />} />
 
@@ -74,36 +92,9 @@ function AppRoutes() {
           element={<ResetPassword />}
         />
 
-
-        {/* ==================== CANDIDATE ==================== */}
-
-        <Route
-          path="/candidate/dashboard"
-          element={<CandidateDashboard />}
-        />
-
-        <Route
-          path="/candidate/profile"
-          element={<Profile />}
-        />
-
-        <Route
-          path="/candidate/applications"
-          element={<MyApplications />}
-        />
-
-        <Route
-          path="/candidate/applications/:id"
-          element={<ApplicationDetails />}
-        />
-
-        <Route
-          path="/candidate/interviews"
-          element={<MyInterviews />}
-        />
-
-
-        {/* ==================== JOBS ==================== */}
+        {/* =====================================================
+            PUBLIC JOB ROUTES
+        ===================================================== */}
 
         <Route
           path="/jobs"
@@ -115,72 +106,283 @@ function AppRoutes() {
           element={<JobDetails />}
         />
 
+        {/* =====================================================
+            CANDIDATE
+        ===================================================== */}
+
         <Route
-          path="/jobs/:id/apply"
-          element={<ApplyJob />}
+          path="/candidate/dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <CandidateDashboard />
+            </ProtectedRoute>
+          }
         />
 
         <Route
+          path="/candidate/profile"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/candidate/applications"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <MyApplications />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/candidate/applications/:id"
+          element={
+            <ProtectedRoute
+              allowedRoles={[
+                "candidate",
+                "recruiter",
+                "admin",
+              ]}
+            >
+              <ApplicationDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/candidate/interviews"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <MyInterviews />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/candidate/cv"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <MyCV />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/candidate/resume"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <MyCV />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/candidate/messages"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <Messages />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/candidate/settings"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/candidate/saved-jobs"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <SavedJobs />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/candidate/notifications"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =====================================================
+            CANDIDATE JOB APPLICATION
+        ===================================================== */}
+
+        <Route
+          path="/jobs/:id/apply"
+          element={
+            <ProtectedRoute allowedRoles={["candidate"]}>
+              <ApplyJob />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =====================================================
+            RECRUITER JOB MANAGEMENT
+        ===================================================== */}
+
+        <Route
           path="/jobs/post"
-          element={<PostJob />}
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <PostJob />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/jobs/:id/edit"
-          element={<EditJob />}
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <EditJob />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/jobs/my-jobs"
-          element={<MyJobs />}
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <MyJobs />
+            </ProtectedRoute>
+          }
         />
 
-
-        {/* ==================== RECRUITER ==================== */}
+        {/* =====================================================
+            RECRUITER
+        ===================================================== */}
 
         <Route
           path="/recruiter/dashboard"
-          element={<RecruiterDashboard />}
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <RecruiterDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/recruiter/profile"
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <RecruiterProfile />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/recruiter/applications"
-          element={<RecruiterApplications />}
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <RecruiterApplications />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/recruiter/interviews/schedule"
-          element={<ScheduleInterview />}
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <ScheduleInterview />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/recruiter/interviews"
-          element={<RecruiterInterviews />}
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <RecruiterInterview />
+            </ProtectedRoute>
+          }
         />
 
+        <Route
+          path="/recruiter/messages"
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <RecruiterMessages />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* ==================== ADMIN ==================== */}
+        <Route
+          path="/recruiter/reports"
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <RecruiterReports />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/recruiter/settings"
+          element={
+            <ProtectedRoute allowedRoles={["recruiter"]}>
+              <RecruiterSettings />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =====================================================
+            ADMIN
+        ===================================================== */}
 
         <Route
           path="/admin/dashboard"
-          element={<AdminDashboard />}
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/admin/users"
-          element={<ManageUsers />}
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <ManageUsers />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/admin/jobs"
-          element={<ManageJobs />}
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <ManageJobs />
+            </ProtectedRoute>
+          }
         />
 
         <Route
           path="/admin/applications"
-          element={<ManageApplications />}
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <ManageApplications />
+            </ProtectedRoute>
+          }
         />
 
+        {/* =====================================================
+            FALLBACK
+        ===================================================== */}
+
+        <Route
+          path="*"
+          element={<Navigate to="/" replace />}
+        />
       </Routes>
     </BrowserRouter>
   );

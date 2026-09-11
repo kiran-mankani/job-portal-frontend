@@ -2,25 +2,45 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { apiRequest } from "../services/api";
 
 // ==========================================
+// GET TOKEN FROM REDUX STATE
+// ==========================================
+
+const getAuthToken = (token, getState) => {
+  return (
+    token ||
+    getState()?.auth?.token ||
+    localStorage.getItem("token") ||
+    null
+  );
+};
+
+// ==========================================
 // CANDIDATE DASHBOARD
 // ==========================================
 
 export const getCandidateDashboard = createAsyncThunk(
   "dashboard/getCandidateDashboard",
-  async (token, { rejectWithValue }) => {
+
+  async (token, { rejectWithValue, getState }) => {
     try {
-      if (!token) {
-        return rejectWithValue("Authentication token is required");
+      const authToken = getAuthToken(token, getState);
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
       }
 
       return await apiRequest(
         "/dashboard/candidate",
         "GET",
         null,
-        token
+        authToken
       );
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message || "Failed to load candidate dashboard"
+      );
     }
   }
 );
@@ -31,20 +51,57 @@ export const getCandidateDashboard = createAsyncThunk(
 
 export const getRecruiterDashboard = createAsyncThunk(
   "dashboard/getRecruiterDashboard",
-  async (token, { rejectWithValue }) => {
+
+  async (
+    {
+      token,
+      page = 1,
+      limit = 5,
+      jobStatus = "",
+      applicationStatus = "",
+      search = "",
+    } = {},
+    { rejectWithValue, getState }
+  ) => {
     try {
-      if (!token) {
-        return rejectWithValue("Authentication token is required");
+      const authToken = getAuthToken(token, getState);
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
+      const params = new URLSearchParams();
+
+      params.append("page", page);
+      params.append("limit", limit);
+
+      if (jobStatus) {
+        params.append("jobStatus", jobStatus);
+      }
+
+      if (applicationStatus) {
+        params.append(
+          "applicationStatus",
+          applicationStatus
+        );
+      }
+
+      if (search) {
+        params.append("search", search);
       }
 
       return await apiRequest(
-        "/dashboard/recruiter",
+        `/dashboard/recruiter?${params.toString()}`,
         "GET",
         null,
-        token
+        authToken
       );
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message || "Failed to load recruiter dashboard"
+      );
     }
   }
 );
@@ -55,23 +112,46 @@ export const getRecruiterDashboard = createAsyncThunk(
 
 export const getAdminDashboard = createAsyncThunk(
   "dashboard/getAdminDashboard",
-  async (token, { rejectWithValue }) => {
+
+  async (token, { rejectWithValue, getState }) => {
     try {
-      if (!token) {
-        return rejectWithValue("Authentication token is required");
+      const authToken = getAuthToken(token, getState);
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
       }
 
       return await apiRequest(
         "/dashboard/admin",
         "GET",
         null,
-        token
+        authToken
       );
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message || "Failed to load admin dashboard"
+      );
     }
   }
 );
+
+// ==========================================
+// NORMALIZE DASHBOARD RESPONSE
+// ==========================================
+
+const getDashboardData = (payload) => {
+  if (!payload) {
+    return null;
+  }
+
+  return (
+    payload.dashboard ||
+    payload.data ||
+    payload
+  );
+};
 
 // ==========================================
 // INITIAL STATE
@@ -90,6 +170,7 @@ const initialState = {
 
 const dashboardSlice = createSlice({
   name: "dashboard",
+
   initialState,
 
   reducers: {
@@ -109,62 +190,116 @@ const dashboardSlice = createSlice({
   },
 
   extraReducers: (builder) => {
-    // Candidate
-    builder
-      .addCase(getCandidateDashboard.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getCandidateDashboard.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data =
-          action.payload.dashboard ||
-          action.payload.data ||
-          action.payload;
-        state.success = action.payload;
-      })
-      .addCase(getCandidateDashboard.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
+    // ======================================
+    // CANDIDATE
+    // ======================================
 
-    // Recruiter
     builder
-      .addCase(getRecruiterDashboard.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getRecruiterDashboard.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data =
-          action.payload.dashboard ||
-          action.payload.data ||
-          action.payload;
-        state.success = action.payload;
-      })
-      .addCase(getRecruiterDashboard.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
+      .addCase(
+        getCandidateDashboard.pending,
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
 
-    // Admin
+      .addCase(
+        getCandidateDashboard.fulfilled,
+        (state, action) => {
+          state.loading = false;
+
+          state.data = getDashboardData(
+            action.payload
+          );
+
+          state.success = action.payload;
+          state.error = null;
+        }
+      )
+
+      .addCase(
+        getCandidateDashboard.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            action.payload ||
+            "Failed to load candidate dashboard";
+        }
+      );
+
+    // ======================================
+    // RECRUITER
+    // ======================================
+
     builder
-      .addCase(getAdminDashboard.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(getAdminDashboard.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data =
-          action.payload.dashboard ||
-          action.payload.data ||
-          action.payload;
-        state.success = action.payload;
-      })
-      .addCase(getAdminDashboard.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
+      .addCase(
+        getRecruiterDashboard.pending,
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+
+      .addCase(
+        getRecruiterDashboard.fulfilled,
+        (state, action) => {
+          state.loading = false;
+
+          state.data = getDashboardData(
+            action.payload
+          );
+
+          state.success = action.payload;
+          state.error = null;
+        }
+      )
+
+      .addCase(
+        getRecruiterDashboard.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            action.payload ||
+            "Failed to load recruiter dashboard";
+        }
+      );
+
+    // ======================================
+    // ADMIN
+    // ======================================
+
+    builder
+      .addCase(
+        getAdminDashboard.pending,
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
+
+      .addCase(
+        getAdminDashboard.fulfilled,
+        (state, action) => {
+          state.loading = false;
+
+          state.data = getDashboardData(
+            action.payload
+          );
+
+          state.success = action.payload;
+          state.error = null;
+        }
+      )
+
+      .addCase(
+        getAdminDashboard.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            action.payload ||
+            "Failed to load admin dashboard";
+        }
+      );
   },
 });
 
@@ -182,13 +317,20 @@ export const {
 // SELECTORS
 // ==========================================
 
-export const selectDashboard = (state) => state.dashboard.data;
-export const selectDashboardLoading = (state) => state.dashboard.loading;
-export const selectDashboardError = (state) => state.dashboard.error;
-export const selectDashboardSuccess = (state) => state.dashboard.success;
+export const selectDashboard = (state) =>
+  state.dashboard.data;
+
+export const selectDashboardLoading = (state) =>
+  state.dashboard.loading;
+
+export const selectDashboardError = (state) =>
+  state.dashboard.error;
+
+export const selectDashboardSuccess = (state) =>
+  state.dashboard.success;
 
 // ==========================================
-// EXPORT
+// DEFAULT EXPORT
 // ==========================================
 
 export default dashboardSlice.reducer;

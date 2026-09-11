@@ -2,66 +2,188 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { apiRequest } from "../services/api";
 
 // ==========================================
+// TOKEN HELPER
+// ==========================================
+
+const getAuthToken = (token, getState) => {
+  return (
+    token ||
+    getState()?.auth?.token ||
+    localStorage.getItem("token") ||
+    null
+  );
+};
+
+// ==========================================
+// QUERY BUILDER
+// ==========================================
+
+const buildQueryString = (params = {}) => {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (
+      value !== undefined &&
+      value !== null &&
+      value !== ""
+    ) {
+      query.append(key, value);
+    }
+  });
+
+  const result = query.toString();
+
+  return result ? `?${result}` : "";
+};
+
+// ==========================================
 // GET USERS
+// GET /api/admin/users
 // ==========================================
 
 export const getUsers = createAsyncThunk(
   "admin/getUsers",
-  async ({ token, role = "" }, { rejectWithValue }) => {
+  async (
+    {
+      token,
+      role = "",
+      search = "",
+      page = 1,
+      limit = 10,
+    } = {},
+    { rejectWithValue, getState }
+  ) => {
     try {
-      const endpoint = role
-        ? `/admin/users?role=${encodeURIComponent(role)}`
-        : "/admin/users";
+      const authToken = getAuthToken(
+        token,
+        getState
+      );
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
+      const endpoint =
+        `/admin/users` +
+        buildQueryString({
+          role,
+          search: search.trim(),
+          page,
+          limit,
+        });
 
       const data = await apiRequest(
         endpoint,
         "GET",
         null,
-        token
+        authToken
       );
 
-      return data;
+      return {
+        ...data,
+        users:
+          data?.users ||
+          data?.data ||
+          [],
+        pagination:
+          data?.pagination || {
+            page,
+            limit,
+            total: 0,
+            totalPages: 1,
+          },
+      };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message ||
+          "Failed to load users"
+      );
     }
   }
 );
 
 // ==========================================
 // BLOCK / UNBLOCK USER
+// PATCH /api/admin/users/:id/block
 // ==========================================
 
 export const toggleBlockUser = createAsyncThunk(
   "admin/toggleBlockUser",
-  async ({ id, token }, { rejectWithValue }) => {
+  async (
+    { id, token } = {},
+    { rejectWithValue, getState }
+  ) => {
     try {
+      if (!id) {
+        return rejectWithValue(
+          "User ID is required"
+        );
+      }
+
+      const authToken = getAuthToken(
+        token,
+        getState
+      );
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
       const data = await apiRequest(
         `/admin/users/${id}/block`,
         "PATCH",
         null,
-        token
+        authToken
       );
 
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message ||
+          "Failed to update user status"
+      );
     }
   }
 );
 
 // ==========================================
 // DELETE USER
+// DELETE /api/admin/users/:id
 // ==========================================
 
 export const deleteUser = createAsyncThunk(
   "admin/deleteUser",
-  async ({ id, token }, { rejectWithValue }) => {
+  async (
+    { id, token } = {},
+    { rejectWithValue, getState }
+  ) => {
     try {
+      if (!id) {
+        return rejectWithValue(
+          "User ID is required"
+        );
+      }
+
+      const authToken = getAuthToken(
+        token,
+        getState
+      );
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
       const data = await apiRequest(
         `/admin/users/${id}`,
         "DELETE",
         null,
-        token
+        authToken
       );
 
       return {
@@ -69,55 +191,144 @@ export const deleteUser = createAsyncThunk(
         deletedUserId: id,
       };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message ||
+          "Failed to delete user"
+      );
     }
   }
 );
 
 // ==========================================
 // GET JOBS
+// GET /api/admin/jobs
 // ==========================================
 
 export const getAdminJobs = createAsyncThunk(
   "admin/getAdminJobs",
-  async ({ token, status = "" }, { rejectWithValue }) => {
+  async (
+    {
+      token,
+      status = "",
+      search = "",
+      page = 1,
+      limit = 10,
+    } = {},
+    { rejectWithValue, getState }
+  ) => {
     try {
-      const endpoint = status
-        ? `/admin/jobs?status=${encodeURIComponent(status)}`
-        : "/admin/jobs";
+      const authToken = getAuthToken(
+        token,
+        getState
+      );
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
+      const endpoint =
+        `/admin/jobs` +
+        buildQueryString({
+          status,
+          search: search.trim(),
+          page,
+          limit,
+        });
 
       const data = await apiRequest(
         endpoint,
         "GET",
         null,
-        token
+        authToken
       );
 
-      return data;
+      return {
+        ...data,
+        jobs:
+          data?.jobs ||
+          data?.data ||
+          [],
+        pagination:
+          data?.pagination || {
+            page,
+            limit,
+            total: 0,
+            totalPages: 1,
+          },
+      };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message ||
+          "Failed to load jobs"
+      );
     }
   }
 );
 
 // ==========================================
 // GET APPLICATIONS
+// GET /api/admin/applications
 // ==========================================
 
 export const getAdminApplications = createAsyncThunk(
   "admin/getAdminApplications",
-  async (token, { rejectWithValue }) => {
+  async (
+    {
+      token,
+      status = "",
+      page = 1,
+      limit = 10,
+    } = {},
+    { rejectWithValue, getState }
+  ) => {
     try {
-      const data = await apiRequest(
-        "/admin/applications",
-        "GET",
-        null,
-        token
+      const authToken = getAuthToken(
+        token,
+        getState
       );
 
-      return data;
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
+      const endpoint =
+        `/admin/applications` +
+        buildQueryString({
+          status,
+          page,
+          limit,
+        });
+
+      const data = await apiRequest(
+        endpoint,
+        "GET",
+        null,
+        authToken
+      );
+
+      return {
+        ...data,
+        applications:
+          data?.applications ||
+          data?.data ||
+          [],
+        pagination:
+          data?.pagination || {
+            page,
+            limit,
+            total: 0,
+            totalPages: 1,
+          },
+      };
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message ||
+          "Failed to load applications"
+      );
     }
   }
 );
@@ -134,6 +345,27 @@ const initialState = {
   userCount: 0,
   jobCount: 0,
   applicationCount: 0,
+
+  usersPagination: {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  },
+
+  jobsPagination: {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  },
+
+  applicationsPagination: {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  },
 
   loading: false,
   error: null,
@@ -162,6 +394,22 @@ const adminSlice = createSlice({
       state.users = [];
       state.jobs = [];
       state.applications = [];
+
+      state.userCount = 0;
+      state.jobCount = 0;
+      state.applicationCount = 0;
+
+      state.usersPagination = {
+        ...initialState.usersPagination,
+      };
+
+      state.jobsPagination = {
+        ...initialState.jobsPagination,
+      };
+
+      state.applicationsPagination = {
+        ...initialState.applicationsPagination,
+      };
     },
   },
 
@@ -171,172 +419,250 @@ const adminSlice = createSlice({
     // ========================================
 
     builder
-      .addCase(getUsers.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      .addCase(
+        getUsers.pending,
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
 
-      .addCase(getUsers.fulfilled, (state, action) => {
-        state.loading = false;
+      .addCase(
+        getUsers.fulfilled,
+        (state, action) => {
+          state.loading = false;
 
-        state.users =
-          action.payload?.users ||
-          action.payload?.data ||
-          [];
+          state.users =
+            action.payload?.users ||
+            [];
 
-        state.userCount =
-          action.payload?.count ??
-          state.users.length;
-      })
+          state.usersPagination =
+            action.payload?.pagination ||
+            state.usersPagination;
 
-      .addCase(getUsers.rejected, (state, action) => {
-        state.loading = false;
+          state.userCount =
+            action.payload?.pagination?.total ??
+            action.payload?.count ??
+            state.users.length;
 
-        state.error =
-          action.payload ||
-          "Failed to load users";
-      });
+          state.error = null;
+        }
+      )
+
+      .addCase(
+        getUsers.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload ||
+            "Failed to load users";
+        }
+      );
 
     // ========================================
     // BLOCK / UNBLOCK USER
     // ========================================
 
     builder
-      .addCase(toggleBlockUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-        state.success = null;
-      })
-
-      .addCase(toggleBlockUser.fulfilled, (state, action) => {
-        state.loading = false;
-
-        state.success = action.payload;
-
-        const updatedUser =
-          action.payload?.user ||
-          action.payload?.data;
-
-        if (updatedUser?._id) {
-          const index = state.users.findIndex(
-            (user) =>
-              user._id === updatedUser._id
-          );
-
-          if (index !== -1) {
-            state.users[index] = updatedUser;
-          }
+      .addCase(
+        toggleBlockUser.pending,
+        (state) => {
+          state.loading = true;
+          state.error = null;
+          state.success = null;
         }
-      })
+      )
 
-      .addCase(toggleBlockUser.rejected, (state, action) => {
-        state.loading = false;
+      .addCase(
+        toggleBlockUser.fulfilled,
+        (state, action) => {
+          state.loading = false;
 
-        state.error =
-          action.payload ||
-          "Failed to update user status";
-      });
+          state.success =
+            action.payload?.message ||
+            action.payload;
+
+          const updatedUser =
+            action.payload?.user ||
+            action.payload?.data;
+
+          if (updatedUser?._id) {
+            const index =
+              state.users.findIndex(
+                (user) =>
+                  user._id ===
+                  updatedUser._id
+              );
+
+            if (index !== -1) {
+              state.users[index] =
+                updatedUser;
+            }
+          }
+
+          state.error = null;
+        }
+      )
+
+      .addCase(
+        toggleBlockUser.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload ||
+            "Failed to update user status";
+        }
+      );
 
     // ========================================
     // DELETE USER
     // ========================================
 
     builder
-      .addCase(deleteUser.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-        state.success = null;
-      })
-
-      .addCase(deleteUser.fulfilled, (state, action) => {
-        state.loading = false;
-
-        state.success = action.payload;
-
-        const deletedUserId =
-          action.payload?.deletedUserId;
-
-        if (deletedUserId) {
-          state.users =
-            state.users.filter(
-              (user) =>
-                user._id !== deletedUserId
-            );
-
-          state.userCount =
-            state.users.length;
+      .addCase(
+        deleteUser.pending,
+        (state) => {
+          state.loading = true;
+          state.error = null;
+          state.success = null;
         }
-      })
+      )
 
-      .addCase(deleteUser.rejected, (state, action) => {
-        state.loading = false;
+      .addCase(
+        deleteUser.fulfilled,
+        (state, action) => {
+          state.loading = false;
 
-        state.error =
-          action.payload ||
-          "Failed to delete user";
-      });
+          state.success =
+            action.payload?.message ||
+            "User deleted successfully";
+
+          const deletedUserId =
+            action.payload?.deletedUserId;
+
+          if (deletedUserId) {
+            state.users =
+              state.users.filter(
+                (user) =>
+                  user._id !==
+                  deletedUserId
+              );
+
+            if (
+              state.userCount > 0
+            ) {
+              state.userCount -= 1;
+            }
+          }
+
+          state.error = null;
+        }
+      )
+
+      .addCase(
+        deleteUser.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload ||
+            "Failed to delete user";
+        }
+      );
 
     // ========================================
     // GET JOBS
     // ========================================
 
     builder
-      .addCase(getAdminJobs.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      .addCase(
+        getAdminJobs.pending,
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
 
-      .addCase(getAdminJobs.fulfilled, (state, action) => {
-        state.loading = false;
+      .addCase(
+        getAdminJobs.fulfilled,
+        (state, action) => {
+          state.loading = false;
 
-        state.jobs =
-          action.payload?.jobs ||
-          action.payload?.data ||
-          [];
+          state.jobs =
+            action.payload?.jobs ||
+            [];
 
-        state.jobCount =
-          action.payload?.count ??
-          state.jobs.length;
-      })
+          state.jobsPagination =
+            action.payload?.pagination ||
+            state.jobsPagination;
 
-      .addCase(getAdminJobs.rejected, (state, action) => {
-        state.loading = false;
+          state.jobCount =
+            action.payload?.pagination?.total ??
+            action.payload?.count ??
+            state.jobs.length;
 
-        state.error =
-          action.payload ||
-          "Failed to load jobs";
-      });
+          state.error = null;
+        }
+      )
+
+      .addCase(
+        getAdminJobs.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload ||
+            "Failed to load jobs";
+        }
+      );
 
     // ========================================
     // GET APPLICATIONS
     // ========================================
 
     builder
-      .addCase(getAdminApplications.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
+      .addCase(
+        getAdminApplications.pending,
+        (state) => {
+          state.loading = true;
+          state.error = null;
+        }
+      )
 
-      .addCase(getAdminApplications.fulfilled, (state, action) => {
-        state.loading = false;
+      .addCase(
+        getAdminApplications.fulfilled,
+        (state, action) => {
+          state.loading = false;
 
-        state.applications =
-          action.payload?.applications ||
-          action.payload?.data ||
-          [];
+          state.applications =
+            action.payload?.applications ||
+            [];
 
-        state.applicationCount =
-          action.payload?.count ??
-          state.applications.length;
-      })
+          state.applicationsPagination =
+            action.payload?.pagination ||
+            state.applicationsPagination;
 
-      .addCase(getAdminApplications.rejected, (state, action) => {
-        state.loading = false;
+          state.applicationCount =
+            action.payload?.pagination?.total ??
+            action.payload?.count ??
+            state.applications.length;
 
-        state.error =
-          action.payload ||
-          "Failed to load applications";
-      });
+          state.error = null;
+        }
+      )
+
+      .addCase(
+        getAdminApplications.rejected,
+        (state, action) => {
+          state.loading = false;
+
+          state.error =
+            action.payload ||
+            "Failed to load applications";
+        }
+      );
   },
 });
 
@@ -355,22 +681,63 @@ export const {
 // ==========================================
 
 export const selectAdminUsers = (state) =>
-  state.admin.users;
+  state.admin?.users || [];
 
 export const selectAdminJobs = (state) =>
-  state.admin.jobs;
+  state.admin?.jobs || [];
 
 export const selectAdminApplications = (state) =>
-  state.admin.applications;
+  state.admin?.applications || [];
+
+export const selectAdminUserCount = (state) =>
+  state.admin?.userCount || 0;
+
+export const selectAdminJobCount = (state) =>
+  state.admin?.jobCount || 0;
+
+export const selectAdminApplicationCount = (
+  state
+) =>
+  state.admin?.applicationCount || 0;
+
+export const selectAdminUsersPagination = (
+  state
+) =>
+  state.admin?.usersPagination || {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  };
+
+export const selectAdminJobsPagination = (
+  state
+) =>
+  state.admin?.jobsPagination || {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  };
+
+export const selectAdminApplicationsPagination = (
+  state
+) =>
+  state.admin?.applicationsPagination || {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+  };
 
 export const selectAdminLoading = (state) =>
-  state.admin.loading;
+  state.admin?.loading || false;
 
 export const selectAdminError = (state) =>
-  state.admin.error;
+  state.admin?.error || null;
 
 export const selectAdminSuccess = (state) =>
-  state.admin.success;
+  state.admin?.success || null;
 
 // ==========================================
 // REDUCER

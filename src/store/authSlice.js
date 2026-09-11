@@ -1,1016 +1,986 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { apiRequest } from "../services/api";
 
-// ==========================================
-// REGEX VALIDATION
-// ==========================================
+// ======================================================
+// REGISTER CANDIDATE
+// ======================================================
 
-const nameRegex = /^[A-Za-z ]{2,50}$/;
-
-const companyNameRegex = /^[A-Za-z0-9 &.-]{2,100}$/;
-
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-
-const phoneRegex = /^(?:\+92|0)3\d{9}$/;
-
-const otpRegex = /^\d{6}$/;
-
-
-// ==========================================
-// VALIDATION FUNCTION
-// ==========================================
-
-const validateAuthData = (data, type) => {
-
-  // ----------------------------------------
-  // Candidate Register
-  // ----------------------------------------
-
-  if (type === "register") {
-
-    if (
-      !data.name ||
-      !nameRegex.test(data.name.trim())
-    ) {
-      return "Name must contain only letters and spaces (2-50 characters)";
-    }
-
-    if (
-      !data.email ||
-      !emailRegex.test(data.email.trim())
-    ) {
-      return "Please enter a valid email address";
-    }
-
-    if (
-      !data.password ||
-      !passwordRegex.test(data.password)
-    ) {
-      return "Password must be at least 8 characters and contain a letter and a number";
-    }
-
-    if (
-      data.phone &&
-      !phoneRegex.test(data.phone.trim())
-    ) {
-      return "Please enter a valid Pakistani phone number";
-    }
-  }
-
-
-  // ----------------------------------------
-  // Recruiter Register
-  // ----------------------------------------
-
-  if (type === "recruiterRegister") {
-
-    if (
-      !data.name ||
-      !nameRegex.test(data.name.trim())
-    ) {
-      return "Name must contain only letters and spaces (2-50 characters)";
-    }
-
-    if (
-      !data.companyName ||
-      !companyNameRegex.test(
-        data.companyName.trim()
-      )
-    ) {
-      return "Company name must be 2-100 characters";
-    }
-
-    if (
-      !data.email ||
-      !emailRegex.test(data.email.trim())
-    ) {
-      return "Please enter a valid email address";
-    }
-
-    if (
-      !data.password ||
-      !passwordRegex.test(data.password)
-    ) {
-      return "Password must be at least 8 characters and contain a letter and a number";
-    }
-  }
-
-
-  // ----------------------------------------
-  // Login
-  // ----------------------------------------
-
-  if (type === "login") {
-
-    if (
-      !data.email ||
-      !emailRegex.test(data.email.trim())
-    ) {
-      return "Please enter a valid email address";
-    }
-
-    if (!data.password) {
-      return "Password is required";
-    }
-  }
-
-
-  // ----------------------------------------
-  // Forgot Password
-  // ----------------------------------------
-
-  if (type === "forgotPassword") {
-
-    if (
-      !data.email ||
-      !emailRegex.test(data.email.trim())
-    ) {
-      return "Please enter a valid email address";
-    }
-  }
-
-
-  // ----------------------------------------
-  // Verify OTP
-  // ----------------------------------------
-
-  if (type === "verifyOTP") {
-
-    if (
-      !data.email ||
-      !emailRegex.test(data.email.trim())
-    ) {
-      return "Please enter a valid email address";
-    }
-
-    if (
-      !data.otp ||
-      !otpRegex.test(data.otp)
-    ) {
-      return "OTP must be exactly 6 digits";
-    }
-  }
-
-  return null;
-};
-
-
-// ==========================================
-// CANDIDATE REGISTER
-// ==========================================
-
-export const registerCandidate = createAsyncThunk(
-  "auth/registerCandidate",
-
+export const registerUser = createAsyncThunk(
+  "auth/registerUser",
   async (userData, { rejectWithValue }) => {
     try {
-
-      const validationError =
-        validateAuthData(
-          userData,
-          "register"
-        );
-
-      if (validationError) {
-        return rejectWithValue(
-          validationError
-        );
-      }
-
-      const data = await apiRequest(
-        "/auth/register",
-        "POST",
-        userData
-      );
-
-      return data;
-
+      return await apiRequest("/auth/register", "POST", userData);
     } catch (error) {
-
-      return rejectWithValue(
-        error.message
-      );
+      return rejectWithValue(error?.message || "Registration failed");
     }
   }
 );
 
+export const registerCandidate = registerUser;
 
-// ==========================================
-// RECRUITER REGISTER
-// ==========================================
+// ======================================================
+// REGISTER RECRUITER
+// ======================================================
 
 export const registerRecruiter = createAsyncThunk(
   "auth/registerRecruiter",
-
-  async (userData, { rejectWithValue }) => {
+  async (recruiterData, { rejectWithValue }) => {
     try {
-
-      const validationError =
-        validateAuthData(
-          userData,
-          "recruiterRegister"
-        );
-
-      if (validationError) {
-        return rejectWithValue(
-          validationError
-        );
-      }
-
-      const data = await apiRequest(
-        "/auth/recruiter/register",
+      return await apiRequest(
+        "/auth/recruiter-register",
         "POST",
-        userData
+        recruiterData
       );
-
-      return data;
-
     } catch (error) {
-
       return rejectWithValue(
-        error.message
+        error?.message || "Recruiter registration failed"
       );
     }
   }
 );
 
-
-// ==========================================
+// ======================================================
 // LOGIN
-// ==========================================
+// ======================================================
 
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
-
   async (credentials, { rejectWithValue }) => {
     try {
-
-      const validationError =
-        validateAuthData(
-          credentials,
-          "login"
-        );
-
-      if (validationError) {
-        return rejectWithValue(
-          validationError
-        );
-      }
-
-      const data = await apiRequest(
-        "/auth/login",
-        "POST",
-        {
-          email: credentials.email.trim(),
-          password: credentials.password,
-        }
-      );
-
-
-      // Save token
-      if (data.token) {
-        localStorage.setItem(
-          "token",
-          data.token
-        );
-      }
-
-
-      // Save user
-      if (data.user) {
-        localStorage.setItem(
-          "user",
-          JSON.stringify(data.user)
-        );
-      }
-
-
-      return data;
-
+      return await apiRequest("/auth/login", "POST", credentials);
     } catch (error) {
-
-      return rejectWithValue(
-        error.message
-      );
+      return rejectWithValue(error?.message || "Login failed");
     }
   }
 );
 
+export const login = loginUser;
 
-// ==========================================
+// ======================================================
 // FORGOT PASSWORD
-// ==========================================
+// ======================================================
 
 export const forgotPassword = createAsyncThunk(
   "auth/forgotPassword",
-
-  async (data, { rejectWithValue }) => {
+  async (emailData, { rejectWithValue }) => {
     try {
-
-      const validationError =
-        validateAuthData(
-          data,
-          "forgotPassword"
-        );
-
-      if (validationError) {
-        return rejectWithValue(
-          validationError
-        );
-      }
-
-      const response = await apiRequest(
+      return await apiRequest(
         "/auth/forgot-password",
         "POST",
-        {
-          email: data.email.trim(),
-        }
+        emailData
       );
-
-
-      return response;
-
     } catch (error) {
-
       return rejectWithValue(
-        error.message
+        error?.message || "Failed to send password reset email"
       );
     }
   }
 );
 
-
-// ==========================================
+// ======================================================
 // VERIFY OTP
-// ==========================================
+// ======================================================
 
 export const verifyOTP = createAsyncThunk(
   "auth/verifyOTP",
-
-  async ({ email, otp }, { rejectWithValue }) => {
+  async (otpData, { rejectWithValue }) => {
     try {
-
-      const validationError =
-        validateAuthData(
-          {
-            email,
-            otp,
-          },
-          "verifyOTP"
-        );
-
-      if (validationError) {
-        return rejectWithValue(
-          validationError
-        );
-      }
-
-
-      const data = await apiRequest(
+      return await apiRequest(
         "/auth/verify-otp",
         "POST",
-        {
-          email: email.trim(),
-          otp,
-        }
+        otpData
       );
-
-
-      // Save reset token
-      if (data.resetToken) {
-        localStorage.setItem(
-          "resetToken",
-          data.resetToken
-        );
-      }
-
-
-      return data;
-
     } catch (error) {
-
       return rejectWithValue(
-        error.message
+        error?.message || "OTP verification failed"
       );
     }
   }
 );
-// ==========================================
+
+// ======================================================
 // RESET PASSWORD
-// ==========================================
+// ======================================================
 
 export const resetPassword = createAsyncThunk(
   "auth/resetPassword",
-
-  async (
-    { email, password, confirmPassword, resetToken },
-    { rejectWithValue }
-  ) => {
+  async (resetData, { rejectWithValue }) => {
     try {
-      if (!email || !emailRegex.test(email.trim())) {
-        return rejectWithValue(
-          "Please enter a valid email address"
-        );
-      }
-
-      if (!resetToken) {
-        return rejectWithValue(
-          "Reset verification not found. Please verify your OTP again."
-        );
-      }
-
-      if (!password || !passwordRegex.test(password)) {
-        return rejectWithValue(
-          "Password must be at least 8 characters and contain a letter and a number"
-        );
-      }
-
-      if (password !== confirmPassword) {
-        return rejectWithValue(
-          "Passwords do not match."
-        );
-      }
-
-      const data = await apiRequest(
+      return await apiRequest(
         "/auth/reset-password",
         "POST",
-        {
-          email: email.trim(),
-          password,
-          confirmPassword,
-          resetToken,
-        }
+        resetData
       );
-
-      return data;
     } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-
-// ==========================================
-// GET CURRENT USER
-// ==========================================
-
-export const getCurrentUser = createAsyncThunk(
-  "auth/getCurrentUser",
-
-  async (_, { rejectWithValue }) => {
-    try {
-
-      const token =
-        localStorage.getItem("token");
-
-      if (!token) {
-        return rejectWithValue(
-          "Authentication token not found"
-        );
-      }
-
-
-      const data = await apiRequest(
-        "/auth/me",
-        "GET",
-        null,
-        token
-      );
-
-
-      if (data.user) {
-        localStorage.setItem(
-          "user",
-          JSON.stringify(data.user)
-        );
-      }
-
-
-      return data;
-
-    } catch (error) {
-
       return rejectWithValue(
-        error.message
+        error?.message || "Password reset failed"
       );
     }
   }
 );
 
-
-// ==========================================
+// ======================================================
 // UPDATE PROFILE
-// ==========================================
+// ======================================================
 
 export const updateProfile = createAsyncThunk(
   "auth/updateProfile",
-
-  async (profileData, { rejectWithValue }) => {
+  async (profileData, { getState, rejectWithValue }) => {
     try {
+      const state = getState();
+      const token = state.auth?.token;
 
-      const token =
-        localStorage.getItem("token");
-
-      if (!token) {
-        return rejectWithValue(
-          "Authentication token not found"
-        );
-      }
-
-
-      const data = await apiRequest(
+      return await apiRequest(
         "/auth/profile",
         "PUT",
         profileData,
         token
       );
-
-
-      if (data.user) {
-        localStorage.setItem(
-          "user",
-          JSON.stringify(data.user)
-        );
-      }
-
-
-      return data;
-
     } catch (error) {
-
       return rejectWithValue(
-        error.message
+        error?.message || "Failed to update profile"
       );
     }
   }
 );
 
+// ======================================================
+// STORED USER
+// ======================================================
 
-// ==========================================
-// INITIAL STATE
-// ==========================================
-
-const savedToken =
-  localStorage.getItem("token");
-
-const savedUser =
-  localStorage.getItem("user");
-
-
-let parsedUser = null;
-
-
-if (savedUser) {
-
+const getStoredUser = () => {
   try {
+    const user = localStorage.getItem("user");
 
-    parsedUser =
-      JSON.parse(savedUser);
+    if (!user) {
+      return null;
+    }
 
+    return JSON.parse(user);
   } catch (error) {
-
+    console.error("Failed to read stored user:", error);
     localStorage.removeItem("user");
+    return null;
   }
-}
-
-
-const initialState = {
-
-  user: parsedUser,
-
-  token: savedToken,
-
-  isAuthenticated: !!savedToken,
-
-  loading: false,
-
-  error: null,
-
-  success: null,
 };
 
+// ======================================================
+// STORED TOKEN
+// ======================================================
 
-// ==========================================
+const getStoredToken = () => {
+  try {
+    return localStorage.getItem("token") || null;
+  } catch (error) {
+    console.error("Failed to read stored token:", error);
+    return null;
+  }
+};
+
+// ======================================================
+// INITIAL STATE
+// ======================================================
+
+const initialState = {
+  user: getStoredUser(),
+  token: getStoredToken(),
+
+  isAuthenticated: !!getStoredToken(),
+
+  loading: false,
+  error: null,
+  success: null,
+
+  // Login
+  loginLoading: false,
+  loginError: null,
+  loginSuccess: null,
+
+  // Register
+  registerLoading: false,
+  registerError: null,
+  registerSuccess: null,
+
+  // Recruiter Register
+  recruiterRegisterLoading: false,
+  recruiterRegisterError: null,
+  recruiterRegisterSuccess: null,
+
+  // Forgot Password
+  forgotPasswordLoading: false,
+  forgotPasswordError: null,
+  forgotPasswordSuccess: null,
+
+  // OTP
+  verifyOTPLoading: false,
+  verifyOTPError: null,
+  verifyOTPSuccess: null,
+
+  // Reset Password
+  resetPasswordLoading: false,
+  resetPasswordError: null,
+  resetPasswordSuccess: null,
+
+  // Profile
+  updateProfileLoading: false,
+  updateProfileError: null,
+  updateProfileSuccess: null,
+};
+
+// ======================================================
 // AUTH SLICE
-// ==========================================
+// ======================================================
 
 const authSlice = createSlice({
-
   name: "auth",
 
   initialState,
 
   reducers: {
+    // ==================================================
+    // SET AUTH ERROR
+    // ==================================================
 
-    // --------------------------------------
-    // LOGOUT
-    // --------------------------------------
+    setAuthError: (state, action) => {
+      const message =
+        action.payload || "Something went wrong.";
 
-    logout: (state) => {
-
-      state.user = null;
-
-      state.token = null;
-
-      state.isAuthenticated = false;
-
-      state.error = null;
-
-      state.success = null;
-
-
-      localStorage.removeItem("token");
-
-      localStorage.removeItem("user");
+      state.error = message;
+      state.loginError = message;
     },
 
-
-    // --------------------------------------
-    // CLEAR ERROR
-    // --------------------------------------
+    // ==================================================
+    // CLEAR AUTH ERROR
+    // ==================================================
 
     clearAuthError: (state) => {
-
       state.error = null;
+      state.loginError = null;
+      state.registerError = null;
+      state.recruiterRegisterError = null;
+      state.forgotPasswordError = null;
+      state.verifyOTPError = null;
+      state.resetPasswordError = null;
+      state.updateProfileError = null;
     },
 
+    // ==================================================
+    // SET AUTH SUCCESS
+    // ==================================================
 
-    // --------------------------------------
-    // CLEAR SUCCESS
-    // --------------------------------------
+    setAuthSuccess: (state, action) => {
+      const message =
+        action.payload || "Operation successful.";
+
+      state.success = message;
+      state.loginSuccess = message;
+      state.registerSuccess = message;
+      state.forgotPasswordSuccess = message;
+      state.verifyOTPSuccess = message;
+      state.resetPasswordSuccess = message;
+      state.updateProfileSuccess = message;
+    },
+
+    // ==================================================
+    // CLEAR AUTH SUCCESS
+    // ==================================================
 
     clearAuthSuccess: (state) => {
-
       state.success = null;
+      state.loginSuccess = null;
+      state.registerSuccess = null;
+      state.recruiterRegisterSuccess = null;
+      state.forgotPasswordSuccess = null;
+      state.verifyOTPSuccess = null;
+      state.resetPasswordSuccess = null;
+      state.updateProfileSuccess = null;
+    },
+
+    // ==================================================
+    // CLEAR LOGIN ERROR
+    // ==================================================
+
+    clearLoginError: (state) => {
+      state.error = null;
+      state.loginError = null;
+    },
+
+    // ==================================================
+    // CLEAR REGISTER ERROR
+    // ==================================================
+
+    clearRegisterError: (state) => {
+      state.error = null;
+      state.registerError = null;
+    },
+
+    // ==================================================
+    // CLEAR RECRUITER REGISTER ERROR
+    // ==================================================
+
+    clearRecruiterRegisterError: (state) => {
+      state.error = null;
+      state.recruiterRegisterError = null;
+    },
+
+    // ==================================================
+    // CLEAR FORGOT PASSWORD ERROR
+    // ==================================================
+
+    clearForgotPasswordError: (state) => {
+      state.error = null;
+      state.forgotPasswordError = null;
+    },
+
+    // ==================================================
+    // CLEAR OTP ERROR
+    // ==================================================
+
+    clearVerifyOTPError: (state) => {
+      state.error = null;
+      state.verifyOTPError = null;
+    },
+
+    // ==================================================
+    // CLEAR RESET PASSWORD ERROR
+    // ==================================================
+
+    clearResetPasswordError: (state) => {
+      state.error = null;
+      state.resetPasswordError = null;
+    },
+
+    // ==================================================
+    // CLEAR PROFILE ERROR
+    // ==================================================
+
+    clearUpdateProfileError: (state) => {
+      state.error = null;
+      state.updateProfileError = null;
+    },
+
+    // ==================================================
+    // SET CREDENTIALS
+    // ==================================================
+
+    setCredentials: (state, action) => {
+      const payload = action.payload || {};
+
+      const user =
+        payload.user ||
+        payload.data?.user ||
+        null;
+
+      const token =
+        payload.token ||
+        payload.data?.token ||
+        null;
+
+      if (user) {
+        state.user = user;
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify(user)
+        );
+      }
+
+      if (token) {
+        state.token = token;
+        state.isAuthenticated = true;
+
+        localStorage.setItem(
+          "token",
+          token
+        );
+      }
+    },
+
+    // ==================================================
+    // LOGOUT
+    // ==================================================
+
+    logout: (state) => {
+      state.user = null;
+      state.token = null;
+      state.isAuthenticated = false;
+
+      state.loading = false;
+
+      state.error = null;
+      state.success = null;
+
+      state.loginLoading = false;
+      state.loginError = null;
+      state.loginSuccess = null;
+
+      state.registerLoading = false;
+      state.registerError = null;
+      state.registerSuccess = null;
+
+      state.recruiterRegisterLoading = false;
+      state.recruiterRegisterError = null;
+      state.recruiterRegisterSuccess = null;
+
+      state.forgotPasswordLoading = false;
+      state.forgotPasswordError = null;
+      state.forgotPasswordSuccess = null;
+
+      state.verifyOTPLoading = false;
+      state.verifyOTPError = null;
+      state.verifyOTPSuccess = null;
+
+      state.resetPasswordLoading = false;
+      state.resetPasswordError = null;
+      state.resetPasswordSuccess = null;
+
+      state.updateProfileLoading = false;
+      state.updateProfileError = null;
+      state.updateProfileSuccess = null;
+
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
     },
   },
 
-
-  // ========================================
+  // ====================================================
   // EXTRA REDUCERS
-  // ========================================
+  // ====================================================
 
   extraReducers: (builder) => {
-
-
-    // ======================================
-    // CANDIDATE REGISTER
-    // ======================================
+    // ==================================================
+    // REGISTER USER
+    // ==================================================
 
     builder
-      .addCase(
-        registerCandidate.pending,
-        (state) => {
+      .addCase(registerUser.pending, (state) => {
+        state.loading = true;
+        state.registerLoading = true;
 
-          state.loading = true;
+        state.error = null;
+        state.registerError = null;
 
-          state.error = null;
+        state.success = null;
+        state.registerSuccess = null;
+      })
 
-          state.success = null;
+      .addCase(registerUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.registerLoading = false;
+
+        state.error = null;
+        state.registerError = null;
+
+        const payload = action.payload || {};
+
+        const user =
+          payload.user ||
+          payload.data?.user ||
+          null;
+
+        const token =
+          payload.token ||
+          payload.data?.token ||
+          null;
+
+        const message =
+          payload.message ||
+          payload.data?.message ||
+          "Registration successful.";
+
+        state.success = message;
+        state.registerSuccess = message;
+
+        if (user) {
+          state.user = user;
+
+          localStorage.setItem(
+            "user",
+            JSON.stringify(user)
+          );
         }
-      )
 
-      .addCase(
-        registerCandidate.fulfilled,
-        (state, action) => {
+        if (token) {
+          state.token = token;
+          state.isAuthenticated = true;
 
-          state.loading = false;
-
-          state.success =
-            action.payload;
-
-          state.error = null;
+          localStorage.setItem(
+            "token",
+            token
+          );
         }
-      )
+      })
 
-      .addCase(
-        registerCandidate.rejected,
-        (state, action) => {
+      .addCase(registerUser.rejected, (state, action) => {
+        state.loading = false;
+        state.registerLoading = false;
 
-          state.loading = false;
+        state.success = null;
+        state.registerSuccess = null;
 
-          state.error =
-            action.payload ||
-            "Registration failed";
-        }
-      );
+        const message =
+          action.payload || "Registration failed.";
 
+        state.error = message;
+        state.registerError = message;
+      });
 
-    // ======================================
+    // ==================================================
     // RECRUITER REGISTER
-    // ======================================
+    // ==================================================
 
     builder
-      .addCase(
-        registerRecruiter.pending,
-        (state) => {
+      .addCase(registerRecruiter.pending, (state) => {
+        state.loading = true;
+        state.recruiterRegisterLoading = true;
 
-          state.loading = true;
+        state.error = null;
+        state.recruiterRegisterError = null;
 
-          state.error = null;
-
-          state.success = null;
-        }
-      )
+        state.success = null;
+        state.recruiterRegisterSuccess = null;
+      })
 
       .addCase(
         registerRecruiter.fulfilled,
         (state, action) => {
-
           state.loading = false;
-
-          state.success =
-            action.payload;
+          state.recruiterRegisterLoading = false;
 
           state.error = null;
+          state.recruiterRegisterError = null;
+
+          const payload = action.payload || {};
+
+          const user =
+            payload.user ||
+            payload.data?.user ||
+            null;
+
+          const token =
+            payload.token ||
+            payload.data?.token ||
+            null;
+
+          const message =
+            payload.message ||
+            payload.data?.message ||
+            "Recruiter registration successful.";
+
+          state.success = message;
+          state.recruiterRegisterSuccess =
+            message;
+
+          if (user) {
+            state.user = user;
+
+            localStorage.setItem(
+              "user",
+              JSON.stringify(user)
+            );
+          }
+
+          if (token) {
+            state.token = token;
+            state.isAuthenticated = true;
+
+            localStorage.setItem(
+              "token",
+              token
+            );
+          }
         }
       )
 
       .addCase(
         registerRecruiter.rejected,
         (state, action) => {
-
           state.loading = false;
+          state.recruiterRegisterLoading = false;
 
-          state.error =
+          state.success = null;
+          state.recruiterRegisterSuccess = null;
+
+          const message =
             action.payload ||
-            "Recruiter registration failed";
+            "Recruiter registration failed.";
+
+          state.error = message;
+          state.recruiterRegisterError = message;
         }
       );
 
-
-    // ======================================
+    // ==================================================
     // LOGIN
-    // ======================================
+    // ==================================================
 
     builder
-      .addCase(
-        loginUser.pending,
-        (state) => {
+      .addCase(loginUser.pending, (state) => {
+        state.loading = true;
+        state.loginLoading = true;
 
-          state.loading = true;
+        state.error = null;
+        state.loginError = null;
 
-          state.error = null;
+        state.success = null;
+        state.loginSuccess = null;
+      })
 
-          state.success = null;
+      .addCase(loginUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.loginLoading = false;
+
+        state.error = null;
+        state.loginError = null;
+
+        const payload = action.payload || {};
+
+        const user =
+          payload.user ||
+          payload.data?.user ||
+          null;
+
+        const token =
+          payload.token ||
+          payload.data?.token ||
+          null;
+
+        const message =
+          payload.message ||
+          payload.data?.message ||
+          "Login successful.";
+
+        state.success = message;
+        state.loginSuccess = message;
+
+        if (user) {
+          state.user = user;
+
+          localStorage.setItem(
+            "user",
+            JSON.stringify(user)
+          );
         }
-      )
 
-      .addCase(
-        loginUser.fulfilled,
-        (state, action) => {
+        if (token) {
+          state.token = token;
+          state.isAuthenticated = true;
 
-          state.loading = false;
-
-          state.user =
-            action.payload.user;
-
-          state.token =
-            action.payload.token;
-
-          state.isAuthenticated =
-            true;
-
-          state.success =
-            action.payload;
-
-          state.error = null;
+          localStorage.setItem(
+            "token",
+            token
+          );
         }
-      )
+      })
 
-      .addCase(
-        loginUser.rejected,
-        (state, action) => {
+      .addCase(loginUser.rejected, (state, action) => {
+        state.loading = false;
+        state.loginLoading = false;
 
-          state.loading = false;
+        state.success = null;
+        state.loginSuccess = null;
 
-          state.error =
-            action.payload ||
-            "Login failed";
+        const message =
+          action.payload || "Login failed.";
 
-          state.isAuthenticated =
-            false;
-        }
-      );
+        state.error = message;
+        state.loginError = message;
 
+        state.isAuthenticated = false;
+      });
 
-    // ======================================
+    // ==================================================
     // FORGOT PASSWORD
-    // ======================================
+    // ==================================================
 
     builder
-      .addCase(
-        forgotPassword.pending,
-        (state) => {
+      .addCase(forgotPassword.pending, (state) => {
+        state.loading = true;
+        state.forgotPasswordLoading = true;
 
-          state.loading = true;
+        state.error = null;
+        state.forgotPasswordError = null;
 
-          state.error = null;
-
-          state.success = null;
-        }
-      )
+        state.success = null;
+        state.forgotPasswordSuccess = null;
+      })
 
       .addCase(
         forgotPassword.fulfilled,
         (state, action) => {
-
           state.loading = false;
-
-          state.success =
-            action.payload;
+          state.forgotPasswordLoading = false;
 
           state.error = null;
+          state.forgotPasswordError = null;
+
+          const payload = action.payload || {};
+
+          const message =
+            payload.message ||
+            payload.data?.message ||
+            "OTP sent successfully.";
+
+          state.success = message;
+          state.forgotPasswordSuccess =
+            message;
         }
       )
 
       .addCase(
         forgotPassword.rejected,
         (state, action) => {
-
           state.loading = false;
+          state.forgotPasswordLoading = false;
 
-          state.error =
+          state.success = null;
+          state.forgotPasswordSuccess = null;
+
+          const message =
             action.payload ||
-            "Failed to send OTP";
+            "Failed to send OTP.";
+
+          state.error = message;
+          state.forgotPasswordError =
+            message;
         }
       );
 
-
-    // ======================================
+    // ==================================================
     // VERIFY OTP
-    // ======================================
+    // ==================================================
 
     builder
-      .addCase(
-        verifyOTP.pending,
-        (state) => {
+      .addCase(verifyOTP.pending, (state) => {
+        state.loading = true;
+        state.verifyOTPLoading = true;
 
-          state.loading = true;
+        state.error = null;
+        state.verifyOTPError = null;
 
-          state.error = null;
-
-          state.success = null;
-        }
-      )
+        state.success = null;
+        state.verifyOTPSuccess = null;
+      })
 
       .addCase(
         verifyOTP.fulfilled,
         (state, action) => {
-
           state.loading = false;
-
-          state.success =
-            action.payload;
+          state.verifyOTPLoading = false;
 
           state.error = null;
+          state.verifyOTPError = null;
+
+          const payload = action.payload || {};
+
+          const message =
+            payload.message ||
+            payload.data?.message ||
+            "OTP verified successfully.";
+
+          state.success = message;
+          state.verifyOTPSuccess = message;
         }
       )
 
       .addCase(
         verifyOTP.rejected,
         (state, action) => {
-
           state.loading = false;
-
-          state.error =
-            action.payload ||
-            "Invalid OTP";
-        }
-      );
-    
-
-    // ======================================
-    // GET CURRENT USER
-    // ======================================
-
-    builder
-      .addCase(
-        getCurrentUser.pending,
-        (state) => {
-
-          state.loading = true;
-
-          state.error = null;
-        }
-      )
-
-      .addCase(
-        getCurrentUser.fulfilled,
-        (state, action) => {
-
-          state.loading = false;
-
-          state.user =
-            action.payload.user;
-
-          state.isAuthenticated =
-            true;
-
-          state.error = null;
-        }
-      )
-
-      .addCase(
-        getCurrentUser.rejected,
-        (state, action) => {
-
-          state.loading = false;
-
-          state.error =
-            action.payload ||
-            "Failed to get current user";
-        }
-      );
-
-
-    // ======================================
-    // UPDATE PROFILE
-    // ======================================
-
-    builder
-      .addCase(
-        updateProfile.pending,
-        (state) => {
-
-          state.loading = true;
-
-          state.error = null;
+          state.verifyOTPLoading = false;
 
           state.success = null;
+          state.verifyOTPSuccess = null;
+
+          const message =
+            action.payload ||
+            "OTP verification failed.";
+
+          state.error = message;
+          state.verifyOTPError = message;
+        }
+      );
+
+    // ==================================================
+    // RESET PASSWORD
+    // ==================================================
+
+    builder
+      .addCase(resetPassword.pending, (state) => {
+        state.loading = true;
+        state.resetPasswordLoading = true;
+
+        state.error = null;
+        state.resetPasswordError = null;
+
+        state.success = null;
+        state.resetPasswordSuccess = null;
+      })
+
+      .addCase(
+        resetPassword.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.resetPasswordLoading = false;
+
+          state.error = null;
+          state.resetPasswordError = null;
+
+          const payload = action.payload || {};
+
+          const message =
+            payload.message ||
+            payload.data?.message ||
+            "Password reset successful.";
+
+          state.success = message;
+          state.resetPasswordSuccess =
+            message;
         }
       )
+
+      .addCase(
+        resetPassword.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.resetPasswordLoading = false;
+
+          state.success = null;
+          state.resetPasswordSuccess = null;
+
+          const message =
+            action.payload ||
+            "Password reset failed.";
+
+          state.error = message;
+          state.resetPasswordError =
+            message;
+        }
+      );
+
+    // ==================================================
+    // UPDATE PROFILE
+    // ==================================================
+
+    builder
+      .addCase(updateProfile.pending, (state) => {
+        state.loading = true;
+        state.updateProfileLoading = true;
+
+        state.error = null;
+        state.updateProfileError = null;
+
+        state.success = null;
+        state.updateProfileSuccess = null;
+      })
 
       .addCase(
         updateProfile.fulfilled,
         (state, action) => {
-
           state.loading = false;
-
-          state.user =
-            action.payload.user;
-
-          state.success =
-            action.payload;
+          state.updateProfileLoading = false;
 
           state.error = null;
+          state.updateProfileError = null;
+
+          const payload = action.payload || {};
+
+          const updatedUser =
+            payload.user ||
+            payload.data?.user ||
+            payload.updatedUser ||
+            payload.data?.updatedUser ||
+            null;
+
+          const message =
+            payload.message ||
+            payload.data?.message ||
+            "Profile updated successfully.";
+
+          state.success = message;
+          state.updateProfileSuccess = message;
+
+          if (updatedUser) {
+            state.user = updatedUser;
+
+            localStorage.setItem(
+              "user",
+              JSON.stringify(updatedUser)
+            );
+          }
         }
       )
 
       .addCase(
         updateProfile.rejected,
         (state, action) => {
-
           state.loading = false;
+          state.updateProfileLoading = false;
 
-          state.error =
+          state.success = null;
+          state.updateProfileSuccess = null;
+
+          const message =
             action.payload ||
-            "Profile update failed";
+            "Failed to update profile.";
+
+          state.error = message;
+          state.updateProfileError = message;
         }
       );
-
   },
 });
 
-
-// ==========================================
-// ACTIONS
-// ==========================================
+// ======================================================
+// ACTION EXPORTS
+// ======================================================
 
 export const {
-  logout,
+  setAuthError,
   clearAuthError,
+
+  setAuthSuccess,
   clearAuthSuccess,
+
+  clearLoginError,
+  clearRegisterError,
+  clearRecruiterRegisterError,
+
+  clearForgotPasswordError,
+  clearVerifyOTPError,
+  clearResetPasswordError,
+  clearUpdateProfileError,
+
+  setCredentials,
+  logout,
 } = authSlice.actions;
 
-
-// ==========================================
+// ======================================================
 // SELECTORS
-// ==========================================
+// ======================================================
 
-export const selectUser = (state) =>
-  state.auth.user;
+export const selectCurrentUser = (state) =>
+  state.auth?.user || null;
 
-export const selectToken = (state) =>
-  state.auth.token;
+export const selectAuthToken = (state) =>
+  state.auth?.token || null;
 
 export const selectIsAuthenticated = (state) =>
-  state.auth.isAuthenticated;
+  state.auth?.isAuthenticated || false;
 
 export const selectAuthLoading = (state) =>
-  state.auth.loading;
+  state.auth?.loading || false;
 
 export const selectAuthError = (state) =>
-  state.auth.error;
+  state.auth?.error || null;
 
 export const selectAuthSuccess = (state) =>
-  state.auth.success;
+  state.auth?.success || null;
 
-
-// ==========================================
-// EXPORT REDUCER
-// ==========================================
+// ======================================================
+// DEFAULT EXPORT
+// ======================================================
 
 export default authSlice.reducer;
+
