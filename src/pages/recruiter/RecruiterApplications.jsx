@@ -459,24 +459,6 @@ function RecruiterApplications() {
   // INITIAL LOADING
   // ======================================================
 
-  const hasFilters = Boolean(
-    search ||
-      statusFilter ||
-      jobFilter
-  );
-
-  const successMessage =
-    typeof success === "string"
-      ? success
-      : success?.message ||
-        "Application status updated successfully.";
-
-  const errorMessage =
-    typeof error === "string"
-      ? error
-      : error?.message ||
-        "Unable to load applications.";
-
   if (
     loading &&
     applications.length === 0
