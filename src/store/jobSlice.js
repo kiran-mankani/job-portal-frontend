@@ -1027,3 +1027,4 @@ export const selectIsSavingJob = (state, jobId) => {
 // EXPORT REDUCER
 // =========================================================
 
+export default jobSlice.reducer;
