@@ -459,7 +459,28 @@ function RecruiterApplications() {
   // INITIAL LOADING
   // ======================================================
 
-  if (loading && applications.length === 0) {
+  const hasFilters = Boolean(
+    search ||
+      statusFilter ||
+      jobFilter
+  );
+
+  const successMessage =
+    typeof success === "string"
+      ? success
+      : success?.message ||
+        "Application status updated successfully.";
+
+  const errorMessage =
+    typeof error === "string"
+      ? error
+      : error?.message ||
+        "Unable to load applications.";
+
+  if (
+    loading &&
+    applications.length === 0
+  ) {
     return (
       <div className="min-h-screen bg-[#f5f8fc]">
         <div className="flex min-h-screen items-center justify-center px-4">

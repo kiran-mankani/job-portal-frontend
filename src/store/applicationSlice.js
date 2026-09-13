@@ -201,6 +201,7 @@ export const getMyApplications = createAsyncThunk(
 
 // ==========================================
 // GET APPLICATION DETAILS
+// GET /api/applications/:applicationId
 // ==========================================
 
 export const getApplicationDetails = createAsyncThunk(
@@ -297,6 +298,7 @@ export const getRecruiterApplications = createAsyncThunk(
 
 // ==========================================
 // UPDATE APPLICATION STATUS
+// PUT /api/applications/:applicationId/status
 // ==========================================
 
 export const updateApplicationStatus = createAsyncThunk(
@@ -350,6 +352,7 @@ export const updateApplicationStatus = createAsyncThunk(
 
 // ==========================================
 // WITHDRAW APPLICATION
+// PUT /api/applications/:applicationId/withdraw
 // ==========================================
 
 export const withdrawApplication = createAsyncThunk(

@@ -655,7 +655,8 @@ const styles = {
   },
   jobsGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gridTemplateColumns:
+      "repeat(auto-fit, minmax(280px, 1fr))",
     gap: "20px",
   },
   jobCard: {
@@ -664,7 +665,8 @@ const styles = {
     border: "1px solid #e2e8f0",
     borderRadius: "10px",
     background: "#fff",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+    boxShadow:
+      "0 2px 8px rgba(0,0,0,0.08)",
   },
   cardHeader: {
     display: "flex",
@@ -794,3 +796,4 @@ const styles = {
 };
 
 export default JobList;
+

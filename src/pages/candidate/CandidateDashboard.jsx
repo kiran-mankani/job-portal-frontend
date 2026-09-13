@@ -24,13 +24,6 @@ import {
   Lightbulb,
   Send,
   Bell,
-} from "lucide-react";
-
-import {
-  getCandidateDashboard,
-  clearDashboardError,
-} from "../../store/dashboardSlice";
-
 import { getAllJobs } from "../../store/jobSlice";
 
 import { apiRequest } from "../../services/api";
