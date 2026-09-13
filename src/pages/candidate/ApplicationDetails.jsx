@@ -12,20 +12,27 @@ function ApplicationDetails() {
   const { id } = useParams();
   const dispatch = useDispatch();
 
-  const { token } = useSelector((state) => state.auth);
+  const { token } = useSelector(
+    (state) => state.auth || {}
+  );
 
   const {
     application,
     loading,
     error,
-  } = useSelector((state) => state.applications);
+  } = useSelector(
+    (state) => state.applications || {}
+  );
+
+  const authToken =
+    token || localStorage.getItem("token") || null;
 
   useEffect(() => {
-    if (token && id) {
+    if (authToken && id) {
       dispatch(
         getApplicationDetails({
           id,
-          token,
+          token: authToken,
         })
       );
     }
@@ -33,16 +40,32 @@ function ApplicationDetails() {
     return () => {
       dispatch(clearSelectedApplication());
     };
-  }, [dispatch, id, token]);
+  }, [dispatch, id, authToken]);
+
+  const getErrorMessage = (value) => {
+    if (!value) {
+      return "Unable to load application details.";
+    }
+
+    if (typeof value === "string") {
+      return value;
+    }
+
+    return (
+      value?.message ||
+      value?.error ||
+      "Unable to load application details."
+    );
+  };
 
   const handleRetry = () => {
     dispatch(clearApplicationError());
 
-    if (token && id) {
+    if (authToken && id) {
       dispatch(
         getApplicationDetails({
           id,
-          token,
+          token: authToken,
         })
       );
     }
@@ -72,9 +95,10 @@ function ApplicationDetails() {
         <div style={styles.error}>
           <h2>Unable to load application</h2>
 
-          <p>{error}</p>
+          <p>{getErrorMessage(error)}</p>
 
           <button
+            type="button"
             onClick={handleRetry}
             style={styles.retryButton}
           >
@@ -121,10 +145,44 @@ function ApplicationDetails() {
   // DATA
   // ==========================================
 
-  const job = application.job;
+  const job =
+    application.job &&
+    typeof application.job === "object"
+      ? application.job
+      : null;
 
   const status =
     application.status || "pending";
+
+  const jobId =
+    job?._id ||
+    job?.id ||
+    application.jobId ||
+    null;
+
+  const jobTitle =
+    job?.title ||
+    application.jobTitle ||
+    "N/A";
+
+  const companyName =
+    typeof job?.company === "string"
+      ? job.company
+      : job?.company?.name ||
+        job?.companyName ||
+        application.company ||
+        "N/A";
+
+  const location =
+    job?.location ||
+    application.location ||
+    "N/A";
+
+  const jobType =
+    job?.jobType ||
+    job?.type ||
+    application.jobType ||
+    "N/A";
 
   return (
     <div style={styles.container}>
@@ -166,7 +224,7 @@ function ApplicationDetails() {
               ...getStatusStyle(status),
             }}
           >
-            {status}
+            {formatStatus(status)}
           </h2>
         </div>
 
@@ -177,9 +235,7 @@ function ApplicationDetails() {
             </p>
 
             <p style={styles.value}>
-              {new Date(
-                application.createdAt
-              ).toLocaleDateString()}
+              {formatDate(application.createdAt)}
             </p>
           </div>
         )}
@@ -199,7 +255,7 @@ function ApplicationDetails() {
             </p>
 
             <p style={styles.value}>
-              {job?.title || "N/A"}
+              {jobTitle}
             </p>
           </div>
 
@@ -209,9 +265,7 @@ function ApplicationDetails() {
             </p>
 
             <p style={styles.value}>
-              {job?.company ||
-                job?.companyName ||
-                "N/A"}
+              {companyName}
             </p>
           </div>
 
@@ -221,7 +275,7 @@ function ApplicationDetails() {
             </p>
 
             <p style={styles.value}>
-              {job?.location || "N/A"}
+              {location}
             </p>
           </div>
 
@@ -231,9 +285,7 @@ function ApplicationDetails() {
             </p>
 
             <p style={styles.value}>
-              {job?.jobType ||
-                job?.type ||
-                "N/A"}
+              {formatStatus(jobType)}
             </p>
           </div>
 
@@ -243,7 +295,7 @@ function ApplicationDetails() {
             </p>
 
             <p style={styles.value}>
-              {formatSalary(job?.salary)}
+              {formatSalary(job)}
             </p>
           </div>
         </div>
@@ -258,36 +310,14 @@ function ApplicationDetails() {
           </div>
         )}
 
-        {job?.requirements?.length > 0 && (
-          <div style={styles.section}>
-            <h3>Requirements</h3>
-
-            <ul style={styles.list}>
-              {job.requirements.map(
-                (requirement, index) => (
-                  <li key={index}>
-                    {requirement}
-                  </li>
-                )
-              )}
-            </ul>
-          </div>
+        {renderListSection(
+          "Requirements",
+          job?.requirements
         )}
 
-        {job?.responsibilities?.length > 0 && (
-          <div style={styles.section}>
-            <h3>Responsibilities</h3>
-
-            <ul style={styles.list}>
-              {job.responsibilities.map(
-                (responsibility, index) => (
-                  <li key={index}>
-                    {responsibility}
-                  </li>
-                )
-              )}
-            </ul>
-          </div>
+        {renderListSection(
+          "Responsibilities",
+          job?.responsibilities
         )}
       </div>
 
@@ -307,7 +337,7 @@ function ApplicationDetails() {
             <a
               href={application.cvUrl}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               style={styles.cvButton}
             >
               View CV
@@ -315,8 +345,7 @@ function ApplicationDetails() {
           </div>
         ) : (
           <p style={styles.muted}>
-            No CV has been uploaded for this
-            application.
+            No CV has been uploaded for this application.
           </p>
         )}
       </div>
@@ -326,9 +355,9 @@ function ApplicationDetails() {
       ====================================== */}
 
       <div style={styles.actions}>
-        {job?._id && (
+        {jobId && (
           <Link
-            to={`/jobs/${job._id}`}
+            to={`/jobs/${jobId}`}
             style={styles.jobButton}
           >
             View Job
@@ -346,6 +375,35 @@ function ApplicationDetails() {
   );
 }
 
+// ==========================================
+// FORMAT STATUS
+// ==========================================
+
+function formatStatus(value) {
+  if (!value) {
+    return "N/A";
+  }
+
+  return String(value)
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (letter) =>
+      letter.toUpperCase()
+    );
+}
+
+// ==========================================
+// FORMAT DATE
+// ==========================================
+
+function formatDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "N/A";
+  }
+
+  return date.toLocaleDateString();
+}
 
 // ==========================================
 // STATUS STYLE
@@ -353,11 +411,14 @@ function ApplicationDetails() {
 
 function getStatusStyle(status) {
   const normalizedStatus =
-    String(status).toLowerCase();
+    String(status || "")
+      .trim()
+      .toLowerCase();
 
   if (
     normalizedStatus === "accepted" ||
-    normalizedStatus === "approved"
+    normalizedStatus === "approved" ||
+    normalizedStatus === "hired"
   ) {
     return {
       background: "#e5ffe9",
@@ -366,7 +427,8 @@ function getStatusStyle(status) {
   }
 
   if (
-    normalizedStatus === "shortlisted"
+    normalizedStatus === "shortlisted" ||
+    normalizedStatus === "interview"
   ) {
     return {
       background: "#e5f0ff",
@@ -400,39 +462,119 @@ function getStatusStyle(status) {
   };
 }
 
-
 // ==========================================
 // SALARY FORMAT
 // ==========================================
 
-function formatSalary(salary) {
-  if (!salary) return "N/A";
-
-  if (
-    typeof salary === "object"
-  ) {
-    const min =
-      salary.min ??
-      salary.minimum;
-
-    const max =
-      salary.max ??
-      salary.maximum;
-
-    if (min && max) {
-      return `${min} - ${max}`;
-    }
-
-    if (min) {
-      return `${min}+`;
-    }
-
+function formatSalary(job) {
+  if (!job) {
     return "N/A";
   }
 
-  return String(salary);
+  const minSalary =
+    job.minSalary ??
+    job.minimumSalary ??
+    job.salary?.min ??
+    job.salary?.minimum ??
+    null;
+
+  const maxSalary =
+    job.maxSalary ??
+    job.maximumSalary ??
+    job.salary?.max ??
+    job.salary?.maximum ??
+    null;
+
+  if (
+    minSalary !== null &&
+    minSalary !== undefined &&
+    minSalary !== "" &&
+    maxSalary !== null &&
+    maxSalary !== undefined &&
+    maxSalary !== ""
+  ) {
+    return `${formatNumber(minSalary)} - ${formatNumber(
+      maxSalary
+    )}`;
+  }
+
+  if (
+    minSalary !== null &&
+    minSalary !== undefined &&
+    minSalary !== ""
+  ) {
+    return `${formatNumber(minSalary)}+`;
+  }
+
+  if (
+    maxSalary !== null &&
+    maxSalary !== undefined &&
+    maxSalary !== ""
+  ) {
+    return `Up to ${formatNumber(maxSalary)}`;
+  }
+
+  if (
+    job.salary !== null &&
+    job.salary !== undefined &&
+    typeof job.salary !== "object"
+  ) {
+    return String(job.salary);
+  }
+
+  return "N/A";
 }
 
+function formatNumber(value) {
+  const number = Number(value);
+
+  if (!Number.isNaN(number)) {
+    return number.toLocaleString();
+  }
+
+  return String(value);
+}
+
+// ==========================================
+// LIST SECTION
+// ==========================================
+
+function renderListSection(title, value) {
+  if (!value) {
+    return null;
+  }
+
+  const items = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+    ? value
+        .split(/\r?\n/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <div style={styles.section}>
+      <h3>{title}</h3>
+
+      <ul style={styles.list}>
+        {items.map((item, index) => (
+          <li key={`${title}-${index}`}>
+            {typeof item === "string"
+              ? item
+              : item?.text ||
+                item?.description ||
+                String(item)}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 // ==========================================
 // STYLES
@@ -516,6 +658,7 @@ const styles = {
   description: {
     lineHeight: "1.6",
     color: "#444",
+    whiteSpace: "pre-wrap",
   },
 
   list: {

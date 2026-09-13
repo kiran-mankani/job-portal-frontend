@@ -183,6 +183,7 @@ function ApplyJob() {
             <label>
               Upload CV
             </label>
+            <br/>
 
             <input
               type="file"

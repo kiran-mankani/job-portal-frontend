@@ -2,24 +2,54 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { apiRequest } from "../services/api";
 
 // ==========================================
+// TOKEN HELPER
+// ==========================================
+
+const getAuthToken = (token, getState) => {
+  return (
+    token ||
+    getState()?.auth?.token ||
+    localStorage.getItem("token") ||
+    null
+  );
+};
+
+// ==========================================
 // SCHEDULE INTERVIEW
 // Recruiter
 // ==========================================
 
 export const scheduleInterview = createAsyncThunk(
   "interviews/scheduleInterview",
-  async ({ interviewData, token }, { rejectWithValue }) => {
+  async (
+    { interviewData, token } = {},
+    { rejectWithValue, getState }
+  ) => {
     try {
+      if (!interviewData) {
+        return rejectWithValue("Interview data is required");
+      }
+
+      const authToken = getAuthToken(token, getState);
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
       const data = await apiRequest(
         "/interviews",
         "POST",
         interviewData,
-        token
+        authToken
       );
 
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message || "Failed to schedule interview"
+      );
     }
   }
 );
@@ -31,18 +61,28 @@ export const scheduleInterview = createAsyncThunk(
 
 export const getCandidateInterviews = createAsyncThunk(
   "interviews/getCandidateInterviews",
-  async (token, { rejectWithValue }) => {
+  async (token, { rejectWithValue, getState }) => {
     try {
+      const authToken = getAuthToken(token, getState);
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
       const data = await apiRequest(
         "/interviews/my-interviews",
         "GET",
         null,
-        token
+        authToken
       );
 
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message || "Failed to load candidate interviews"
+      );
     }
   }
 );
@@ -54,18 +94,28 @@ export const getCandidateInterviews = createAsyncThunk(
 
 export const getRecruiterInterviews = createAsyncThunk(
   "interviews/getRecruiterInterviews",
-  async (token, { rejectWithValue }) => {
+  async (token, { rejectWithValue, getState }) => {
     try {
+      const authToken = getAuthToken(token, getState);
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
       const data = await apiRequest(
         "/interviews/recruiter-interviews",
         "GET",
         null,
-        token
+        authToken
       );
 
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message || "Failed to load recruiter interviews"
+      );
     }
   }
 );
@@ -77,18 +127,39 @@ export const getRecruiterInterviews = createAsyncThunk(
 
 export const updateInterview = createAsyncThunk(
   "interviews/updateInterview",
-  async ({ id, interviewData, token }, { rejectWithValue }) => {
+  async (
+    { id, interviewData, token } = {},
+    { rejectWithValue, getState }
+  ) => {
     try {
+      if (!id) {
+        return rejectWithValue("Interview ID is required");
+      }
+
+      if (!interviewData) {
+        return rejectWithValue("Interview data is required");
+      }
+
+      const authToken = getAuthToken(token, getState);
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
       const data = await apiRequest(
         `/interviews/${id}`,
         "PUT",
         interviewData,
-        token
+        authToken
       );
 
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message || "Failed to update interview"
+      );
     }
   }
 );
@@ -100,18 +171,35 @@ export const updateInterview = createAsyncThunk(
 
 export const cancelInterview = createAsyncThunk(
   "interviews/cancelInterview",
-  async ({ id, token }, { rejectWithValue }) => {
+  async (
+    { id, token } = {},
+    { rejectWithValue, getState }
+  ) => {
     try {
+      if (!id) {
+        return rejectWithValue("Interview ID is required");
+      }
+
+      const authToken = getAuthToken(token, getState);
+
+      if (!authToken) {
+        return rejectWithValue(
+          "Authentication token is required"
+        );
+      }
+
       const data = await apiRequest(
         `/interviews/${id}/cancel`,
         "PATCH",
         null,
-        token
+        authToken
       );
 
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(
+        error.message || "Failed to cancel interview"
+      );
     }
   }
 );
@@ -178,7 +266,14 @@ const interviewSlice = createSlice({
 
           if (createdInterview) {
             state.interview = createdInterview;
-            state.interviews.push(createdInterview);
+
+            const alreadyExists = state.interviews.some(
+              (item) => item._id === createdInterview._id
+            );
+
+            if (!alreadyExists) {
+              state.interviews.push(createdInterview);
+            }
           }
         }
       )
@@ -214,6 +309,8 @@ const interviewSlice = createSlice({
             action.payload?.interviews ||
             action.payload?.data ||
             [];
+
+          state.error = null;
         }
       )
 
@@ -248,6 +345,8 @@ const interviewSlice = createSlice({
             action.payload?.interviews ||
             action.payload?.data ||
             [];
+
+          state.error = null;
         }
       )
 
@@ -365,7 +464,7 @@ const interviewSlice = createSlice({
 });
 
 // ==========================================
-// REDUCERS
+// ACTIONS
 // ==========================================
 
 export const {

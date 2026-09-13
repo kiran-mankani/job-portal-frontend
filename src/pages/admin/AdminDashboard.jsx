@@ -14,11 +14,7 @@ function AdminDashboard() {
     (state) => state.auth
   );
 
-  const {
-    admin,
-    loading,
-    error,
-  } = useSelector(
+  const { admin, loading, error } = useSelector(
     (state) => state.dashboard
   );
 
@@ -42,6 +38,22 @@ function AdminDashboard() {
     if (token) {
       dispatch(getAdminDashboard(token));
     }
+  };
+
+  // ==========================================
+  // ERROR MESSAGE
+  // ==========================================
+
+  const getErrorMessage = (value) => {
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (value?.message) {
+      return value.message;
+    }
+
+    return "Failed to load admin dashboard.";
   };
 
   // ==========================================
@@ -121,19 +133,16 @@ function AdminDashboard() {
 
   return (
     <div style={styles.container}>
-
       {/* ======================================
           HEADER
       ====================================== */}
 
       <div style={styles.header}>
         <div>
-          <h1>
-            Admin Dashboard
-          </h1>
+          <h1>Admin Dashboard</h1>
 
           <p style={styles.subtitle}>
-            Welcome back, {" "}
+            Welcome back,{" "}
             <strong>
               {user?.name || "Admin"}
             </strong>
@@ -150,10 +159,11 @@ function AdminDashboard() {
         <div style={styles.error}>
           <span>
             <strong>Error:</strong>{" "}
-            {error}
+            {getErrorMessage(error)}
           </span>
 
           <button
+            type="button"
             onClick={handleRetry}
             style={styles.retryButton}
           >
@@ -167,7 +177,6 @@ function AdminDashboard() {
       ====================================== */}
 
       <div style={styles.statsGrid}>
-
         <StatCard
           title="Total Users"
           value={totalUsers}
@@ -192,7 +201,6 @@ function AdminDashboard() {
           title="Applications"
           value={totalApplications}
         />
-
       </div>
 
       {/* ======================================
@@ -200,23 +208,18 @@ function AdminDashboard() {
       ====================================== */}
 
       <div style={styles.section}>
-        <h2>
-          Management
-        </h2>
+        <h2>Management</h2>
 
         <div style={styles.actionGrid}>
-
           <Link
             to="/admin/users"
             style={styles.actionCard}
           >
-            <h3>
-              Manage Users
-            </h3>
+            <h3>Manage Users</h3>
 
             <p>
-              View, block, unblock and
-              delete users.
+              View, block, unblock and delete
+              users.
             </p>
           </Link>
 
@@ -224,9 +227,7 @@ function AdminDashboard() {
             to="/admin/jobs"
             style={styles.actionCard}
           >
-            <h3>
-              Manage Jobs
-            </h3>
+            <h3>Manage Jobs</h3>
 
             <p>
               Review and manage all jobs
@@ -238,16 +239,13 @@ function AdminDashboard() {
             to="/admin/applications"
             style={styles.actionCard}
           >
-            <h3>
-              Manage Applications
-            </h3>
+            <h3>Manage Applications</h3>
 
             <p>
               View all candidate applications
               and their details.
             </p>
           </Link>
-
         </div>
       </div>
 
@@ -256,11 +254,8 @@ function AdminDashboard() {
       ====================================== */}
 
       <div style={styles.section}>
-
         <div style={styles.sectionHeader}>
-          <h2>
-            Recent Users
-          </h2>
+          <h2>Recent Users</h2>
 
           <Link
             to="/admin/users"
@@ -272,16 +267,13 @@ function AdminDashboard() {
 
         {users.length === 0 ? (
           <div style={styles.empty}>
-            <p>
-              No users found.
-            </p>
+            <p>No users found.</p>
           </div>
         ) : (
           <div style={styles.list}>
             {users
               .slice(0, 5)
               .map((item, index) => {
-
                 const currentUser =
                   item?.user ||
                   item;
@@ -301,11 +293,7 @@ function AdminDashboard() {
                           "User"}
                       </h3>
 
-                      <p
-                        style={
-                          styles.muted
-                        }
-                      >
+                      <p style={styles.muted}>
                         {currentUser?.email ||
                           "Email not available"}
                       </p>
@@ -327,7 +315,6 @@ function AdminDashboard() {
               })}
           </div>
         )}
-
       </div>
 
       {/* ======================================
@@ -335,11 +322,8 @@ function AdminDashboard() {
       ====================================== */}
 
       <div style={styles.section}>
-
         <div style={styles.sectionHeader}>
-          <h2>
-            Recent Jobs
-          </h2>
+          <h2>Recent Jobs</h2>
 
           <Link
             to="/admin/jobs"
@@ -351,39 +335,28 @@ function AdminDashboard() {
 
         {jobs.length === 0 ? (
           <div style={styles.empty}>
-            <p>
-              No jobs found.
-            </p>
+            <p>No jobs found.</p>
           </div>
         ) : (
           <div style={styles.list}>
             {jobs
               .slice(0, 5)
               .map((job, index) => {
-
                 const jobId =
                   job?._id ||
                   job?.id;
 
                 return (
                   <div
-                    key={
-                      jobId ||
-                      index
-                    }
+                    key={jobId || index}
                     style={styles.listItem}
                   >
                     <div>
                       <h3>
-                        {job?.title ||
-                          "Job"}
+                        {job?.title || "Job"}
                       </h3>
 
-                      <p
-                        style={
-                          styles.muted
-                        }
-                      >
+                      <p style={styles.muted}>
                         {job?.company ||
                           job?.companyName ||
                           "Company"}
@@ -391,9 +364,7 @@ function AdminDashboard() {
 
                       {job?.location && (
                         <small
-                          style={
-                            styles.muted
-                          }
+                          style={styles.muted}
                         >
                           Location:{" "}
                           {job.location}
@@ -409,15 +380,13 @@ function AdminDashboard() {
                         ),
                       }}
                     >
-                      {job?.status ||
-                        "Active"}
+                      {job?.status || "Active"}
                     </span>
                   </div>
                 );
               })}
           </div>
         )}
-
       </div>
 
       {/* ======================================
@@ -425,11 +394,8 @@ function AdminDashboard() {
       ====================================== */}
 
       <div style={styles.section}>
-
         <div style={styles.sectionHeader}>
-          <h2>
-            Recent Applications
-          </h2>
+          <h2>Recent Applications</h2>
 
           <Link
             to="/admin/applications"
@@ -441,86 +407,66 @@ function AdminDashboard() {
 
         {applications.length === 0 ? (
           <div style={styles.empty}>
-            <p>
-              No applications found.
-            </p>
+            <p>No applications found.</p>
           </div>
         ) : (
           <div style={styles.list}>
             {applications
               .slice(0, 5)
-              .map(
-                (
-                  application,
-                  index
-                ) => {
+              .map((application, index) => {
+                const candidate =
+                  application?.candidate ||
+                  {};
 
-                  const candidate =
-                    application?.candidate ||
-                    {};
+                const job =
+                  application?.job ||
+                  {};
 
-                  const job =
-                    application?.job ||
-                    {};
+                return (
+                  <div
+                    key={
+                      application?._id ||
+                      application?.id ||
+                      index
+                    }
+                    style={styles.listItem}
+                  >
+                    <div>
+                      <h3>
+                        {candidate?.name ||
+                          "Candidate"}
+                      </h3>
 
-                  return (
-                    <div
-                      key={
-                        application?._id ||
-                        application?.id ||
-                        index
-                      }
-                      style={
-                        styles.listItem
-                      }
-                    >
-                      <div>
-                        <h3>
-                          {candidate?.name ||
-                            "Candidate"}
-                        </h3>
+                      <p style={styles.muted}>
+                        {candidate?.email ||
+                          "Email not available"}
+                      </p>
 
-                        <p
-                          style={
-                            styles.muted
-                          }
-                        >
-                          {candidate?.email ||
-                            "Email not available"}
-                        </p>
-
-                        <p
-                          style={
-                            styles.muted
-                          }
-                        >
-                          Job:{" "}
-                          {job?.title ||
-                            application?.jobTitle ||
-                            "Job"}
-                        </p>
-                      </div>
-
-                      <span
-                        style={{
-                          ...styles.status,
-                          ...getStatusStyle(
-                            application?.status
-                          ),
-                        }}
-                      >
-                        {application?.status ||
-                          "Pending"}
-                      </span>
+                      <p style={styles.muted}>
+                        Job:{" "}
+                        {job?.title ||
+                          application?.jobTitle ||
+                          "Job"}
+                      </p>
                     </div>
-                  );
-                }
-              )}
+
+                    <span
+                      style={{
+                        ...styles.status,
+                        ...getStatusStyle(
+                          application?.status
+                        ),
+                      }}
+                    >
+                      {application?.status ||
+                        "Pending"}
+                    </span>
+                  </div>
+                );
+              })}
           </div>
         )}
-
       </div>
-
     </div>
   );
 }
@@ -529,10 +475,7 @@ function AdminDashboard() {
 // STAT CARD
 // ==========================================
 
-function StatCard({
-  title,
-  value,
-}) {
+function StatCard({ title, value }) {
   return (
     <div style={styles.statCard}>
       <p style={styles.statTitle}>
@@ -551,9 +494,9 @@ function StatCard({
 // ==========================================
 
 function getStatusStyle(status) {
-  const normalizedStatus =
-    String(status || "")
-      .toLowerCase();
+  const normalizedStatus = String(
+    status || ""
+  ).toLowerCase();
 
   if (
     normalizedStatus === "admin" ||

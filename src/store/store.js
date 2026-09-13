@@ -10,7 +10,7 @@ import adminReducer from "./adminSlice";
 export const store = configureStore({
   reducer: {
     auth: authReducer,
-    jobs: jobReducer,
+    job: jobReducer,
     applications: applicationReducer,
     interviews: interviewReducer,
     dashboard: dashboardReducer,
