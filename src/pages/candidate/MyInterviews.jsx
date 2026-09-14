@@ -130,6 +130,9 @@ function MyInterviews() {
                     <p style={styles.company}>
                       {job?.company ||
                         job?.companyName ||
+                        job?.companyId?.name ||
+                        job?.recruiter?.companyId?.name ||
+                        recruiter?.companyId?.name ||
                         "Company not available"}
                     </p>
                   </div>

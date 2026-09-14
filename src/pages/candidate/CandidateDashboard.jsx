@@ -162,8 +162,12 @@ const CandidateDashboard = () => {
     if (typeof job?.company === "string") return job.company;
     if (typeof job?.company?.name === "string")
       return job.company.name;
+    if (typeof job?.companyId?.name === "string")
+      return job.companyId.name;
     if (typeof job?.recruiter?.company === "string")
       return job.recruiter.company;
+    if (typeof job?.recruiter?.companyId?.name === "string")
+      return job.recruiter.companyId.name;
     if (typeof job?.recruiter?.name === "string")
       return job.recruiter.name;
     return "Company";
@@ -174,6 +178,13 @@ const CandidateDashboard = () => {
       return application.job.company;
     if (typeof application?.job?.company?.name === "string")
       return application.job.company.name;
+    if (typeof application?.job?.companyId?.name === "string")
+      return application.job.companyId.name;
+    if (
+      typeof application?.job?.recruiter?.companyId?.name ===
+      "string"
+    )
+      return application.job.recruiter.companyId.name;
     if (typeof application?.company === "string")
       return application.company;
     if (typeof application?.company?.name === "string")
@@ -189,6 +200,18 @@ const CandidateDashboard = () => {
       "string"
     )
       return interview.application.job.company.name;
+    if (
+      typeof interview?.application?.job?.companyId?.name ===
+      "string"
+    )
+      return interview.application.job.companyId.name;
+    if (
+      typeof interview?.application?.job?.recruiter?.companyId
+        ?.name === "string"
+    )
+      return interview.application.job.recruiter.companyId.name;
+    if (typeof interview?.recruiter?.companyId?.name === "string")
+      return interview.recruiter.companyId.name;
     if (typeof interview?.company === "string")
       return interview.company;
     if (typeof interview?.company?.name === "string")
@@ -197,6 +220,8 @@ const CandidateDashboard = () => {
       return interview.job.company;
     if (typeof interview?.job?.company?.name === "string")
       return interview.job.company.name;
+    if (typeof interview?.job?.companyId?.name === "string")
+      return interview.job.companyId.name;
     return "Company";
   };
 

@@ -118,8 +118,10 @@ function RecruiterDashboard() {
 
     return String(
       job?.companyName ||
+        job?.companyId?.name ||
         job?.recruiter?.companyName ||
         job?.recruiter?.company?.name ||
+        job?.recruiter?.companyId?.name ||
         "Company"
     );
   };
