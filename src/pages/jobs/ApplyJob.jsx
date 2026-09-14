@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -22,6 +22,25 @@ function ApplyJob() {
 
   const [file, setFile] = useState(null);
   const [applicationId, setApplicationId] = useState(null);
+
+  // ===============================
+  // RESET STATE PER JOB
+  //
+  // The `applications` slice keeps a single global success/error
+  // message. Since React Router reuses this same component
+  // instance when navigating between "/jobs/:id/apply" pages,
+  // a leftover message from a previous job (e.g. "Application
+  // submitted successfully!" or "You have already applied for
+  // this job") would otherwise keep showing on the next job's
+  // apply page. Clear it whenever this page loads for a job.
+  // ===============================
+
+  useEffect(() => {
+    dispatch(clearApplicationError());
+    dispatch(clearApplicationSuccess());
+    setFile(null);
+    setApplicationId(null);
+  }, [dispatch, jobId]);
 
   // ===============================
   // FILE CHANGE
