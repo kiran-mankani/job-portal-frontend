@@ -7,6 +7,7 @@ import {
 
 // Protected Route
 import ProtectedRoute from "./ProtectedRoute";
+import PublicRoute from "./PublicRoute";
 
 // Auth
 import Login from "../pages/auth/Login";
@@ -65,14 +66,49 @@ function AppRoutes() {
             AUTH / PUBLIC (no layout)
         ===================================================== */}
 
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/recruiter-register" element={<RecruiterRegister />} />
+        <Route
+          path="/"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <Register />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/recruiter-register"
+          element={
+            <PublicRoute>
+              <RecruiterRegister />
+            </PublicRoute>
+          }
+        />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/verify-otp" element={<VerifyOTP />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin/login"
+          element={
+            <PublicRoute>
+              <AdminLogin />
+            </PublicRoute>
+          }
+        />
 
         {/* =====================================================
             CANDIDATE LAYOUT

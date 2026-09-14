@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import {
   ArrowRight,
   Eye,
@@ -10,9 +11,11 @@ import {
 } from "lucide-react";
 
 import { adminLoginApi } from "../../services/adminApi";
+import { setCredentials } from "../../store/authSlice";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,8 +57,15 @@ const AdminLogin = () => {
       // -----------------------------
       // STORE AUTH DATA
       // -----------------------------
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.admin));
+      // Dispatch into Redux (not just localStorage) so route
+      // guards that read `state.auth` see the session
+      // immediately, without needing a full page reload.
+      dispatch(
+        setCredentials({
+          token: data.token,
+          user: data.admin,
+        })
+      );
 
       // -----------------------------
       // REDIRECT TO ADMIN DASHBOARD

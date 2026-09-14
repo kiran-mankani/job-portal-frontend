@@ -18,6 +18,7 @@ import {
 
 import CandidateSidebar from "./CandidateSidebar";
 import { apiRequest } from "../../services/api";
+import { logout } from "../../store/authSlice";
 
 const CandidateLayout = () => {
   const dispatch = useDispatch();
@@ -142,8 +143,9 @@ const CandidateLayout = () => {
   // =========================================================
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    // Clear Redux auth state (this also clears localStorage) so
+    // no stale session data remains in memory after logout.
+    dispatch(logout());
     navigate("/login", { replace: true });
   };
 

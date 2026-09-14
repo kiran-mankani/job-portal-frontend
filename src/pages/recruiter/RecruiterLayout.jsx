@@ -5,7 +5,7 @@ import {
   useState,
 } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   BarChart3,
   BriefcaseBusiness,
@@ -20,9 +20,11 @@ import {
 } from "lucide-react";
 
 import RecruiterSidebar from "./RecruiterSidebar";
+import { logout } from "../../store/authSlice";
 
 const RecruiterLayout = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const location = useLocation();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -104,9 +106,10 @@ const RecruiterLayout = () => {
   // =========================================================
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    // Clear Redux auth state (this also clears localStorage) so
+    // no stale session data remains in memory after logout.
+    dispatch(logout());
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
     navigate("/login", { replace: true });
   };
 
