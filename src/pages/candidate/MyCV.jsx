@@ -21,6 +21,9 @@ function MyCV() {
 
   const token = authToken || localStorage.getItem("token");
 
+  const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
   const fileInputRef = useRef(null);
 
   const [resumeUrl, setResumeUrl] = useState("");
@@ -264,7 +267,7 @@ function MyCV() {
       setLoading(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/auth/profile/resume/download",
+        `${API_URL}/auth/profile/resume/download`,
         {
           method: "GET",
           headers: {
